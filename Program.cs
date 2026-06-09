@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using TraineeManagementApi.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,11 +10,22 @@ builder.Services.AddControllers();
 // builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
-builder.Services.AddValidation();
+//TO use json converter enum to string in all req res
+// .AddJsonOptions(options =>
+// {
+//     options.JsonSerializerOptions.Converters.Add(
+//         new JsonStringEnumConverter()
+//     );
+// });
+
+
+// builder.Services.AddValidation();
 
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<ITraineeService, TraineeService>();
 
 var app = builder.Build();
 

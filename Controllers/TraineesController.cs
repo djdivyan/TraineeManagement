@@ -1,5 +1,8 @@
 using Models;
 using Microsoft.AspNetCore.Mvc;
+using TraineeManagementApi.Services;
+using TraineeManagementApi.DTOs;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace TraineeManagementApi.Controllers;
 
@@ -7,52 +10,66 @@ namespace TraineeManagementApi.Controllers;
 [Route("[controller]")]
 public class TraineesController : ControllerBase
 {
-    private static readonly List<Trainee> Trainees = [];
-    private static int index = 0;
+    private readonly ITraineeService _service;
 
-
+    public TraineesController(ITraineeService service)
+    {
+        _service = service;
+    }
 
 
     [HttpGet]
     public ActionResult<List<Trainee>> Get()
     {
-        return Ok(
-            Trainees
-        );
+        return Ok(_service.GetAll());
     }
 
     [HttpGet("{id}")]
     public ActionResult<Trainee> Get(int id)
     {
-        var trainee = Trainees.FirstOrDefault(t => t.Id == id);
+        var trainee = _service.GetById(id);
 
-        if(trainee == null)
+        if(trainee is null)
             return NotFound();
 
         return Ok(trainee);
     }
 
     [HttpPost]
-    public IActionResult Post([FromBody] Trainee trainee)
+    public IActionResult Post([FromBody] CreateTraineeRequest createTraineeRequest)
     {
-        // var newTrainee = new
-        // {
-        //     Id = index++,
-        //     FirstName = "Div",
-        //     LastName = "Jain",
-        //     Email = "dj@gmail.com", 
-        //     TechStack = "Java", 
-        //     Status = "Active",
-        //     CreatedDate = DateTime.Now, 
-        //     UpdatedDate = DateTime.Now
 
-        // };
-        trainee.Id = index++;
-        trainee.CreatedDate = DateTime.Now;
-        trainee.UpdatedDate = DateTime.Now;
+        var traineeResponse = _service.Create(createTraineeRequest);
 
-        Trainees.Add(trainee);
-
-        return CreatedAtAction(nameof(Get), new { id = trainee.Id }, trainee);
+        return CreatedAtAction(nameof(Get), new { id = traineeResponse.Id }, traineeResponse);
     }
+
+
+    [HttpPut("{id}")]
+    public ActionResult<TraineeResponse> Update(int id, [FromBody] UpdateTraineeRequest updateTraineeRequest)
+    {
+    if (id != updateTraineeRequest.Id)
+        return BadRequest();
+           
+    var existingTrainee = _service.GetById(id);
+    if(existingTrainee is null)
+        return NotFound();
+
+    return _service.Update(id,updateTraineeRequest);
+    }
+
+
+    [HttpDelete("{id}")]
+    public IActionResult Delete(int id)
+    {
+    if (_service.Delete(id))
+    {
+        return NoContent();
+    }else
+    {
+        return NotFound();
+    }   
+    }
+
+
 }

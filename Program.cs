@@ -12,7 +12,12 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
-builder.Services.AddDbContext<TraineeContext>(opt => opt.UseInMemoryDatabase("TraineeList"));
+// builder.Services.AddDbContext<TraineeContext>(opt => opt.UseInMemoryDatabase("TraineeList"));
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+ 
+builder.Services.AddDbContext<TraineeContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
 
 //TO use json converter enum to string in all req res
 // .AddJsonOptions(options =>

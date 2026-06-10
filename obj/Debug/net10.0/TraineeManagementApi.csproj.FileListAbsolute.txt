@@ -38,3 +38,5 @@
 /mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerGen.dll
 /mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerUI.dll
 /mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/obj/Debug/net10.0/TraineeManagementApi.sourcelink.json
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Relational.dll

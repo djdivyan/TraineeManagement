@@ -1,22 +1,32 @@
+using Microsoft.EntityFrameworkCore;
 using Models;
 using TraineeManagementApi.DTOs;
+using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
 {
-    class TraineeService : ITraineeService
+    class TraineeService(TraineeContext trainees) : ITraineeService
     {
-        private static readonly List<Trainee> Trainees = [];
-        private static int index = 0;
+        private readonly TraineeContext _traineeContext = trainees;
+        
 
-
-         public IEnumerable<Trainee> GetAll()
+        public async Task<IEnumerable<TraineeResponse>> GetAllAsync(string? search)
         {
-            return Trainees;
+            var query = _traineeContext.Trainees.AsQueryable();
+            if(!string.IsNullOrEmpty(search))
+                query = query.Where(
+                    t =>  t.FirstName.Contains(search) || 
+                    t.LastName.Contains(search)        || 
+                    t.Email.Contains(search)           || 
+                    t.TechStack.Contains(search));
+        
+            var trainees = await query.ToListAsync();
+            return trainees.Select(MapToResponse).ToList();
         }
 
-        public TraineeResponse? GetById(int id)
+        public async Task<TraineeResponse?> GetByIdAsync(int id)
         {
-            var trainee = Trainees.FirstOrDefault(t => t.Id == id);
+            var trainee = await _traineeContext.Trainees.FindAsync(id);
             if (trainee is null)
             {
                 return null;
@@ -24,7 +34,51 @@ namespace TraineeManagementApi.Services
             return MapToResponse(trainee);
         }
 
-        public static TraineeResponse? MapToResponse(Trainee trainee)
+        public async Task<TraineeResponse> CreateAsync(CreateTraineeRequest createTraineeRequest)
+        {
+            var trainee = new Trainee
+            {
+            FirstName = createTraineeRequest.FirstName,
+            LastName = createTraineeRequest.LastName,
+            Email = createTraineeRequest.Email, 
+            TechStack = createTraineeRequest.TechStack, 
+            Status = createTraineeRequest.Status,
+            CreatedDate = DateTime.Now, 
+            UpdatedDate = DateTime.Now
+            };
+
+            _traineeContext.Trainees.Add(trainee);
+            await _traineeContext.SaveChangesAsync();
+            return MapToResponse(trainee);
+        }
+
+        public async Task<TraineeResponse?> UpdateAsync(int id, UpdateTraineeRequest updateTraineeRequest)
+        {
+            var trainee = await _traineeContext.Trainees.FindAsync(id);
+            if(trainee is null) return null;
+            trainee.FirstName = updateTraineeRequest.FirstName;
+            trainee.LastName = updateTraineeRequest.LastName;
+            trainee.Email = updateTraineeRequest.Email;
+            trainee.TechStack = updateTraineeRequest.TechStack; 
+            trainee.Status = updateTraineeRequest.Status;
+            trainee.UpdatedDate = DateTime.Now;
+
+            await _traineeContext.SaveChangesAsync();
+            return MapToResponse(trainee);
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var trainee = await _traineeContext.Trainees.FindAsync(id);
+            if(trainee is null)
+                return false;
+
+            _traineeContext.Trainees.Remove(trainee);
+            await _traineeContext.SaveChangesAsync();
+            return true;
+        }
+
+         public static TraineeResponse MapToResponse(Trainee trainee)
         {
             return new TraineeResponse
             {
@@ -37,52 +91,6 @@ namespace TraineeManagementApi.Services
             CreatedDate = trainee.CreatedDate, 
             UpdatedDate = trainee.UpdatedDate
             };
-        }
-
-
-
-        public bool Delete(int id)
-        {
-            var trainee = Trainees.FirstOrDefault(t => t.Id == id);;
-            if(trainee is null)
-                return false;
-
-            Trainees.Remove(trainee);
-
-            return true;
-        }
-
-       
-        public TraineeResponse Create(CreateTraineeRequest createTraineeRequest)
-        {
-            var trainee = new Trainee
-            {
-            Id = index++,
-            FirstName = createTraineeRequest.FirstName,
-            LastName = createTraineeRequest.LastName,
-            Email = createTraineeRequest.Email, 
-            TechStack = createTraineeRequest.TechStack, 
-            Status = createTraineeRequest.Status,
-            CreatedDate = DateTime.Now, 
-            UpdatedDate = DateTime.Now
-            };
-
-            Trainees.Add(trainee);
-            return MapToResponse(trainee);
-        }
-
-        public TraineeResponse? Update(int id, UpdateTraineeRequest updateTraineeRequest)
-        {
-            var trainee = Trainees.FirstOrDefault(t => t.Id == updateTraineeRequest.Id );
-            if(trainee is null) return null;
-            trainee.FirstName = updateTraineeRequest.FirstName;
-            trainee.LastName = updateTraineeRequest.LastName;
-            trainee.Email = updateTraineeRequest.Email;
-            trainee.TechStack = updateTraineeRequest.TechStack; 
-            trainee.Status = updateTraineeRequest.Status;
-            trainee.UpdatedDate = DateTime.Now;
-
-            return MapToResponse(trainee);
         }
     }
 }

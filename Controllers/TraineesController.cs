@@ -8,26 +8,23 @@ namespace TraineeManagementApi.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class TraineesController : ControllerBase
+public class TraineesController(ITraineeService service) : ControllerBase
 {
-    private readonly ITraineeService _service;
-
-    public TraineesController(ITraineeService service)
-    {
-        _service = service;
-    }
-
+    private readonly ITraineeService _service = service;
 
     [HttpGet]
-    public ActionResult<List<Trainee>> Get()
+    public async Task<ActionResult<List<TraineeResponse>>> Get([FromQuery]  string? search)
     {
-        return Ok(_service.GetAll());
+        var result = await _service.GetAllAsync(search);
+
+    
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
-    public ActionResult<Trainee> Get(int id)
+    public async Task<ActionResult<TraineeResponse>> GetById(int id)
     {
-        var trainee = _service.GetById(id);
+        var trainee = await _service.GetByIdAsync(id);
 
         if(trainee is null)
             return NotFound();
@@ -36,33 +33,34 @@ public class TraineesController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Post([FromBody] CreateTraineeRequest createTraineeRequest)
+    public async Task<IActionResult> Post([FromBody] CreateTraineeRequest createTraineeRequest)
     {
 
-        var traineeResponse = _service.Create(createTraineeRequest);
+        var traineeResponse = await _service.CreateAsync(createTraineeRequest);
 
         return CreatedAtAction(nameof(Get), new { id = traineeResponse.Id }, traineeResponse);
     }
 
 
     [HttpPut("{id}")]
-    public ActionResult<TraineeResponse> Update(int id, [FromBody] UpdateTraineeRequest updateTraineeRequest)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateTraineeRequest updateTraineeRequest)
     {
     if (id != updateTraineeRequest.Id)
         return BadRequest();
            
-    var existingTrainee = _service.GetById(id);
+    var existingTrainee = await _service.GetByIdAsync(id);
     if(existingTrainee is null)
         return NotFound();
-
-    return _service.Update(id,updateTraineeRequest);
+    var result = await _service.UpdateAsync(id,updateTraineeRequest);
+    return Ok(result);
     }
 
 
     [HttpDelete("{id}")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-    if (_service.Delete(id))
+        var result = await _service.DeleteAsync(id);
+    if (result)
     {
         return NoContent();
     }else

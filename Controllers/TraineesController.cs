@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using TraineeManagementApi.Services;
 using TraineeManagementApi.DTOs;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TraineeManagementApi.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
+[Authorize]
 public class TraineesController(ITraineeService service) : ControllerBase
 {
     private readonly ITraineeService _service = service;

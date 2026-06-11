@@ -124,3 +124,11 @@
 /mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/obj/Debug/net10.0/TraineeManagementApi.pdb
 /mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/obj/Debug/net10.0/TraineeManagementApi.genruntimeconfig.cache
 /mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/obj/Debug/net10.0/ref/TraineeManagementApi.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.IdentityModel.Abstractions.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.IdentityModel.Logging.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/Microsoft.IdentityModel.Tokens.dll
+/mnt/c/Users/divyan.jain/Desktop/Task 2/TraineeManagementApi/bin/Debug/net10.0/System.IdentityModel.Tokens.Jwt.dll

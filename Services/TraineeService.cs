@@ -5,9 +5,9 @@ using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
 {
-    class TraineeService(TraineeContext trainees) : ITraineeService
+    class TraineeService(AppDbContext trainees) : ITraineeService
     {
-        private readonly TraineeContext _traineeContext = trainees;
+        private readonly AppDbContext _traineeContext = trainees;
         
 
         public async Task<IEnumerable<TraineeResponse>> GetAllAsync(string? search)

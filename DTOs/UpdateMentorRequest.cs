@@ -4,8 +4,10 @@ using Models;
 
 namespace TraineeManagementApi.DTOs
 {
-        public class CreateTraineeRequest
+        public class UpdateMentoreRequest
         {
+            [Required(ErrorMessage = "Id is Required")]
+            public int Id { get; set; }
 
             [Required(ErrorMessage = "First Name is Required")]
             [MaxLength(50, ErrorMessage = "{0} can have a max of {1} characters")]
@@ -21,13 +23,13 @@ namespace TraineeManagementApi.DTOs
 
 
             [Required(ErrorMessage = "TechStack is Required")]
-            public required string TechStack { get; set; }
+            public required string Expertise { get; set; }
 
 
-            [Required(ErrorMessage = "Status is Required")]
-            [EnumDataType(typeof(Status), ErrorMessage = "Status must be valid")]
+            [Required(ErrorMessage = "Mentor Status is Required")]
+            [EnumDataType(typeof(MentorStatus), ErrorMessage = "Status must be valid")]
             [JsonConverter(typeof(JsonStringEnumConverter))]
-            public required Status Status { get; set; }
+            public required MentorStatus MentorStatus { get; set; }
 
     }
 }

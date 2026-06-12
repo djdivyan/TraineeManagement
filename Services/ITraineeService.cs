@@ -11,6 +11,6 @@ namespace TraineeManagementApi.Services
         Task<TraineeResponse> CreateAsync(CreateTraineeRequest createTraineeRequest);
         Task<TraineeResponse?> UpdateAsync(int id,UpdateTraineeRequest updateTraineeRequest);
         Task<bool> DeleteAsync(int id);
-
+        Task<PaginationResponse<TraineeResponse>> GetPagedDataAsync(PaginationRequest paginationRequest);
     } 
 }

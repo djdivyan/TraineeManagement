@@ -4,7 +4,7 @@ using Models;
 
 namespace TraineeManagementApi.DTOs
 {
-        public class CreateTraineeRequest
+        public class MentorRequest
         {
 
             [Required(ErrorMessage = "First Name is Required")]
@@ -21,13 +21,13 @@ namespace TraineeManagementApi.DTOs
 
 
             [Required(ErrorMessage = "TechStack is Required")]
-            public required string TechStack { get; set; }
+            public required string Expertise { get; set; }
 
 
-            [Required(ErrorMessage = "Status is Required")]
-            [EnumDataType(typeof(Status), ErrorMessage = "Status must be valid")]
+            [Required(ErrorMessage = "Mentor Status is Required")]
+            [EnumDataType(typeof(MentorStatus), ErrorMessage = "Status must be valid")]
             [JsonConverter(typeof(JsonStringEnumConverter))]
-            public required Status Status { get; set; }
+            public required MentorStatus MentorStatus { get; set; }
 
     }
 }

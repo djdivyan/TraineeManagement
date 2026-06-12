@@ -7,6 +7,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi;
+using TraineeManagementApi.DTOs;
+using Microsoft.JSInterop.Infrastructure;
+using DotNetEnv;
+
+Env.Load();
+
+var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 
 
@@ -14,27 +21,46 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy  =>
+                      {
+                          policy.WithOrigins("http://localhost:3000",
+                                              "http://localhost:5173");
+                      });
+});
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
+
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(
+        new JsonStringEnumConverter()
+    );
+});;
 
+builder.Configuration.AddEnvironmentVariables();
 // builder.Services.AddDbContext<AppDbContext>(opt => opt.UseInMemoryDatabase("TraineeList"));
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 
 //TO use json converter enum to string in all req res
-// .AddJsonOptions(options =>
-// {
-//     options.JsonSerializerOptions.Converters.Add(
-//         new JsonStringEnumConverter()
-//     );
-// });
+
 
 
 // builder.Services.AddValidation();
+
+
 
 builder.Services.AddAuthentication(options =>
 {
@@ -90,7 +116,9 @@ builder.Services.AddSwaggerGen(options =>
 
 
 builder.Services.AddScoped<ITraineeService, TraineeService>();
-builder.Services.AddScoped<IUserSevice, UserSevice>();
+builder.Services.AddScoped<ILoginService, LoginService>();
+builder.Services.AddScoped<IMentorService, MentorService>();
+
 
 
 var app = builder.Build();
@@ -105,6 +133,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+
+app.UseCors(MyAllowSpecificOrigins);
+
 
 app.UseAuthentication();
 app.UseAuthorization();

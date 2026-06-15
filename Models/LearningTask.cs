@@ -16,6 +16,8 @@ namespace Models
 
         public DateTime UpdatedDate { get; set; }
 
+
+        public ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
     }
 
     public enum LearningTaskStatus

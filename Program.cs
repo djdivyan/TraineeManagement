@@ -10,6 +10,7 @@ using Microsoft.OpenApi;
 using TraineeManagementApi.DTOs;
 using Microsoft.JSInterop.Infrastructure;
 using DotNetEnv;
+using Microsoft.AspNetCore.Diagnostics;
 
 Env.Load();
 
@@ -120,7 +121,9 @@ builder.Services.AddScoped<ITraineeService, TraineeService>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddScoped<IMentorService, MentorService>();
 builder.Services.AddScoped<ILearningTaskService, LearningTaskService>();
-
+builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
+builder.Services.AddScoped<ISubmissionService, SubmissionService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 
 
 var app = builder.Build();
@@ -133,6 +136,26 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger(); // Serves the Swagger JSON
     app.UseSwaggerUI(); // Serves Swagger UI
 }
+
+
+//Exception handling 
+app.UseExceptionHandler(options =>
+{
+    options.Run(async context =>
+    {
+       context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+       context.Response.ContentType = "application/json";
+
+       var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+       
+       if (exceptionHandlerPathFeature is not null)
+       {
+        var error = new {message = "An unexpected error occurred. Please try again later."};
+        await context.Response.WriteAsJsonAsync(error);
+       }
+    });
+});
+
 
 app.UseHttpsRedirection();
 

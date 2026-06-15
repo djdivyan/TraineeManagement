@@ -11,7 +11,7 @@ namespace TraineeManagementApi.Services
         private readonly ILogger<MentorService> _logger = logger;
         
 
-        public async Task<IEnumerable<MentorResponse>> GetAllAsync(string? search)
+        public async Task<List<MentorResponse>> GetAllAsync(string? search)
         {
             IQueryable<Mentor> query = _dbContext.Mentors.AsQueryable();
             if(!string.IsNullOrEmpty(search))

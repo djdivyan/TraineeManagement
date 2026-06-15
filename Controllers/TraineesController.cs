@@ -63,7 +63,7 @@ public class TraineesController(ITraineeService service) : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _service.DeleteAsync(id);
+        bool result = await _service.DeleteAsync(id);
         
         if (result)
             return NoContent();

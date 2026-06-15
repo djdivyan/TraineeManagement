@@ -33,8 +33,8 @@ namespace TraineeManagementApi.Services
             }
 
             //Validate Password
-            var hasher = new PasswordHasher<User>();
-            var result = hasher.VerifyHashedPassword(user,user.PasswordHash,loginRequest.Password);
+            PasswordHasher<User> hasher = new PasswordHasher<User>();
+            PasswordVerificationResult result = hasher.VerifyHashedPassword(user,user.PasswordHash,loginRequest.Password);
             if (result == PasswordVerificationResult.Failed)
             {
 
@@ -45,14 +45,14 @@ namespace TraineeManagementApi.Services
             }
             
             //If Everything Works then Generae JWT Token 
-            var issuer = _configuration["JwtConfig:Issuer"]!;
-            var audience = _configuration["JwtConfig:Audience"]!;
-            var key = _configuration["JwtConfig:Key"]!;
+            string issuer = _configuration["JwtConfig:Issuer"]!;
+            string audience = _configuration["JwtConfig:Audience"]!;
+            string key = _configuration["JwtConfig:Key"]!;
         
-            var tokenValidityMins = _configuration.GetValue<int>("JwtConfig:TokenValidityMins");
-            var tokenExpiryTimeStamp = DateTime.UtcNow.AddMinutes(tokenValidityMins);
+            int tokenValidityMins = _configuration.GetValue<int>("JwtConfig:TokenValidityMins");
+            DateTime tokenExpiryTimeStamp = DateTime.UtcNow.AddMinutes(tokenValidityMins);
             
-            var tokenDescriptor = new SecurityTokenDescriptor
+            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
@@ -68,9 +68,9 @@ namespace TraineeManagementApi.Services
                 SecurityAlgorithms.HmacSha256),
             };
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var securityToken = tokenHandler.CreateToken(tokenDescriptor);
-            var accessToken = tokenHandler.WriteToken(securityToken);
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            SecurityToken securityToken = tokenHandler.CreateToken(tokenDescriptor);
+            string accessToken = tokenHandler.WriteToken(securityToken);
             
             //Build Final response
             authResponse.StatusCode = 0;

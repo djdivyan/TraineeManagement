@@ -16,14 +16,14 @@ public class MentorsController(IMentorService service) : ControllerBase
     private readonly IMentorService _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<List<TraineeResponse>>> Get([FromQuery]  string? search)
+    public async Task<ActionResult<List<MentorResponse>>> Get([FromQuery]  string? search)
     {
-        var result = await _service.GetAllAsync(search);
+        List<MentorResponse> result = await _service.GetAllAsync(search);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<TraineeResponse>> GetById(int id)
+    public async Task<ActionResult<MentorResponse>> GetById(int id)
     {
         MentorResponse? mentor = await _service.GetByIdAsync(id);
 
@@ -61,21 +61,11 @@ public class MentorsController(IMentorService service) : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _service.DeleteAsync(id);
+        bool result = await _service.DeleteAsync(id);
         
         if (result)
             return NoContent();
         else
             return NotFound();
     }
-
-
-    // [HttpGet]
-    // public async Task<PaginationResponse<TraineeResponse>> Get([FromQuery] PaginationRequest paginationRequest)
-    // {
-    //     PaginationResponse<TraineeResponse> result = await _service.GetPagedDataAsync(paginationRequest);
-    //     return result;
-    // }
-
-
 }

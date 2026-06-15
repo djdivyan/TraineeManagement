@@ -11,7 +11,7 @@ namespace TraineeManagementApi.Services
         private readonly ILogger<LearningTaskService> _logger = logger;
         
 
-        public async Task<IEnumerable<LearningTaskResponse>> GetAllAsync(string? search)
+        public async Task<List<LearningTaskResponse>> GetAllAsync(string? search)
         {
             IQueryable<LearningTask> query = _dbContext.LearningTasks.AsQueryable();
             if(!string.IsNullOrEmpty(search))

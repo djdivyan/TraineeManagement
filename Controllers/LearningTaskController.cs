@@ -18,7 +18,7 @@ public class LearningTaskController(ILearningTaskService service) : ControllerBa
     [HttpGet]
     public async Task<ActionResult<List<LearningTaskResponse>>> Get([FromQuery]  string? search)
     {
-        var result = await _service.GetAllAsync(search);
+        List<LearningTaskResponse> result = await _service.GetAllAsync(search);
         return Ok(result);
     }
 
@@ -61,7 +61,7 @@ public class LearningTaskController(ILearningTaskService service) : ControllerBa
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _service.DeleteAsync(id);
+        bool result = await _service.DeleteAsync(id);
         
         if (result)
             return NoContent();

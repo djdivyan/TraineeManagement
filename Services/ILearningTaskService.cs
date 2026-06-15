@@ -5,7 +5,7 @@ namespace TraineeManagementApi.Services
 {
     public interface ILearningTaskService
     {
-        Task<IEnumerable<LearningTaskResponse>> GetAllAsync(string? search);
+        Task<List<LearningTaskResponse>> GetAllAsync(string? search);
         Task<LearningTaskResponse?> GetByIdAsync(int id);
         
         Task<LearningTaskResponse> CreateAsync(LearningTaskRequest learningTaskRequest);

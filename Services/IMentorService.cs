@@ -5,7 +5,7 @@ namespace TraineeManagementApi.Services
 {
     public interface IMentorService
     {
-        Task<IEnumerable<MentorResponse>> GetAllAsync(string? search);
+        Task<List<MentorResponse>> GetAllAsync(string? search);
         Task<MentorResponse?> GetByIdAsync(int id);
         
         Task<MentorResponse> CreateAsync(MentorRequest mentorRequest);

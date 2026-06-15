@@ -60,7 +60,7 @@ namespace TraineeManagementApi.Services
             return MapToResponse(mentor);
         }
 
-        public async Task<MentorResponse?> UpdateAsync(int id, UpdateMentoreRequest updateMentoreRequest)
+        public async Task<MentorResponse?> UpdateAsync(int id, UpdateMentorRequest updateMentoreRequest)
         {
             Mentor? mentor = await _dbContext.Mentors.FindAsync(id);
             if(mentor is null)

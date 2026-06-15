@@ -118,6 +118,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<ITraineeService, TraineeService>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddScoped<IMentorService, MentorService>();
+builder.Services.AddScoped<ILearningTaskService, LearningTaskService>();
 
 
 

@@ -10,61 +10,47 @@ using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
 {
-    class LoginService : ILoginService
-    { 
-        private readonly AppDbContext _dbContext; 
+    class LoginService(AppDbContext dbContext, IConfiguration configuration, ILogger<LoginService> logger) : ILoginService
+    {
+        private readonly ILogger<LoginService> _logger = logger;
+        private readonly AppDbContext _dbContext = dbContext; 
 
-        private readonly IConfiguration _configuration;
+        private readonly IConfiguration _configuration = configuration;
 
-        public LoginService(AppDbContext dbContext,IConfiguration configuration)
+        public async Task<AuthResponse<LoginResponse?>> Authenticate(LoginRequest loginRequest)
         {
-            _dbContext = dbContext;
-            _configuration = configuration;
-        }
-        
-
-        public async Task<User?> GetUser(LoginRequest loginRequest)
-        {
-                var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == loginRequest.Username);
-                return user;
-        }
-
-        public async Task<bool> ValidatePassword(LoginRequest loginRequest)
-        {
-           
-           
-         var user = await GetUser(loginRequest);
-         if (user is null)
-         {
-            return false;
-         }
-         var hasher = new PasswordHasher<User>();
-         var result = hasher.VerifyHashedPassword(user,user.PasswordHash,loginRequest.Password);
-        if (result == PasswordVerificationResult.Failed)
-        {
-            return false;
-        }
-
-        return true;
-
-        }
-
-
-        public async Task<LoginResponse?> Authenticate(LoginRequest loginRequest)
-        {
-            var user = await GetUser(loginRequest);
+            AuthResponse<LoginResponse?> authResponse = new();
+            
+            //Check if User Present
+            User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == loginRequest.Username);
             if (user is null)
             {
-                Console.WriteLine("User Not Found");
-                return null;
+
+                authResponse.Exception = "User Not Found";
+                authResponse.StatusCode = 10001;
+                _logger.LogError("Login Failed : Unable to Find user {username}",loginRequest.Username);
+                return authResponse;
             }
+
+            //Validate Password
+            var hasher = new PasswordHasher<User>();
+            var result = hasher.VerifyHashedPassword(user,user.PasswordHash,loginRequest.Password);
+            if (result == PasswordVerificationResult.Failed)
+            {
+
+                authResponse.Exception = "Password is Invalid";
+                authResponse.StatusCode = 1002;
+                _logger.LogError("Login Failed : Incorrect password for user {username}",loginRequest.Username);
+                return authResponse;
+            }
+            
+            //If Everything Works then Generae JWT Token 
             var issuer = _configuration["JwtConfig:Issuer"]!;
             var audience = _configuration["JwtConfig:Audience"]!;
             var key = _configuration["JwtConfig:Key"]!;
         
             var tokenValidityMins = _configuration.GetValue<int>("JwtConfig:TokenValidityMins");
             var tokenExpiryTimeStamp = DateTime.UtcNow.AddMinutes(tokenValidityMins);
-            Console.WriteLine(tokenExpiryTimeStamp+"Validity Mins"+tokenValidityMins+"Current"+DateTime.UtcNow);
             
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -85,7 +71,10 @@ namespace TraineeManagementApi.Services
             var tokenHandler = new JwtSecurityTokenHandler();
             var securityToken = tokenHandler.CreateToken(tokenDescriptor);
             var accessToken = tokenHandler.WriteToken(securityToken);
-            return new LoginResponse
+            
+            //Build Final response
+            authResponse.StatusCode = 0;
+            authResponse.LoginResponse =  new LoginResponse
             {
                 Token = accessToken,
                 ExpiresIn = (int)tokenExpiryTimeStamp.Subtract(DateTime.UtcNow).TotalSeconds,
@@ -96,37 +85,9 @@ namespace TraineeManagementApi.Services
                     Role = user.Role
                 }
             };
+            
+            _logger.LogInformation("Login successful for user {username}",user.Username);
+            return authResponse;
         }
-
-
-
-        //     public async Task<LoginResponse?> login(LoginRequest loginRequest)
-        //     {
-        //         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == loginRequest.Username);
-        //         if (user is null)
-        //         {
-        //             return null;
-        //         }
-
-        //         var hasher = new PasswordHasher<User>();
-        //         var hashPass = user.PasswordHash;
-        //         user.PasswordHash = "";
-        //         var result = hasher.VerifyHashedPassword(user,hashPass,loginRequest.Password);
-        //     if (result == PasswordVerificationResult.Failed)
-        //     {
-        //         return Unauthorized();
-        //     }
-
-
-
-        //    return new LoginResponse
-        //         {
-        //         Id = User.Id,
-        //         Username = ,
-        //         Role = 
-        //         };
-
-
-        //     }
     }
 }

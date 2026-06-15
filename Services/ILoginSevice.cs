@@ -6,9 +6,6 @@ namespace TraineeManagementApi.Services
 {
     public interface ILoginService
     {
-        Task<User?> GetUser(LoginRequest loginRequest);
-        Task<bool> ValidatePassword(LoginRequest loginRequest);
-
-        Task<LoginResponse?> Authenticate(LoginRequest loginRequest);
+        Task<AuthResponse<LoginResponse?>> Authenticate(LoginRequest loginRequest);
     } 
 }

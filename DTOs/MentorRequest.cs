@@ -20,7 +20,7 @@ namespace TraineeManagementApi.DTOs
             public required string Email { get; set; }
 
 
-            [Required(ErrorMessage = "TechStack is Required")]
+            [Required(ErrorMessage = "Expertise is Required")]
             public required string Expertise { get; set; }
 
 

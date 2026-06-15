@@ -4,7 +4,7 @@ using Models;
 
 namespace TraineeManagementApi.DTOs
 {
-        public class UpdateMentoreRequest
+        public class UpdateMentorRequest
         {
             [Required(ErrorMessage = "Id is Required")]
             public int Id { get; set; }

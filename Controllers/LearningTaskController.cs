@@ -9,47 +9,47 @@ using Microsoft.VisualBasic;
 namespace TraineeManagementApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/learning-tasks")]
 [Authorize]
-public class MentorsController(IMentorService service) : ControllerBase
+public class LearningTaskController(ILearningTaskService service) : ControllerBase
 {
-    private readonly IMentorService _service = service;
+    private readonly ILearningTaskService _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<List<TraineeResponse>>> Get([FromQuery]  string? search)
+    public async Task<ActionResult<List<LearningTaskResponse>>> Get([FromQuery]  string? search)
     {
         var result = await _service.GetAllAsync(search);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<TraineeResponse>> GetById(int id)
+    public async Task<ActionResult<LearningTaskResponse>> GetById(int id)
     {
-        MentorResponse? mentor = await _service.GetByIdAsync(id);
+        LearningTaskResponse? learningTaskResponse = await _service.GetByIdAsync(id);
 
-        if(mentor is null)
+        if(learningTaskResponse is null)
             return NotFound();
 
-        return Ok(mentor);
+        return Ok(learningTaskResponse);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] MentorRequest mentorRequest)
+    public async Task<IActionResult> Post([FromBody] LearningTaskRequest learningTaskRequest)
     {
 
-        MentorResponse? mentorResponse = await _service.CreateAsync(mentorRequest);
+        LearningTaskResponse? learningTaskResponse = await _service.CreateAsync(learningTaskRequest);
 
-        return CreatedAtAction(nameof(Get), new { id = mentorResponse.Id }, mentorResponse);
+        return CreatedAtAction(nameof(Get), new { id = learningTaskResponse.Id }, learningTaskResponse);
     }
 
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateMentorRequest updateMentoreRequest)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateLearningTaskRequest updateLearningTaskRequest)
     {
-        if (id != updateMentoreRequest.Id)
+        if (id != updateLearningTaskRequest.Id)
             return BadRequest();
 
-        MentorResponse? result = await _service.UpdateAsync(id,updateMentoreRequest);
+        LearningTaskResponse? result = await _service.UpdateAsync(id,updateLearningTaskRequest);
     
         if(result is null)
             return NotFound();

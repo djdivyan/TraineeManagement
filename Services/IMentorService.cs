@@ -9,7 +9,7 @@ namespace TraineeManagementApi.Services
         Task<MentorResponse?> GetByIdAsync(int id);
         
         Task<MentorResponse> CreateAsync(MentorRequest mentorRequest);
-        Task<MentorResponse?> UpdateAsync(int id, UpdateMentoreRequest updateMentoreRequest);
+        Task<MentorResponse?> UpdateAsync(int id, UpdateMentorRequest updateMentoreRequest);
         Task<bool> DeleteAsync(int id);
         // Task<PaginationResponse<MentorResponse>> GetPagedDataAsync(PaginationRequest paginationRequest);
     } 

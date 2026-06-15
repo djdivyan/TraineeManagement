@@ -23,34 +23,15 @@ public class AuthController(ILoginService service,ILogger<AuthController> logger
     [HttpPost("login")]
     public async Task<IActionResult> Post([FromBody] LoginRequest loginRequest)
     {
-
-        // var token = GenerateJwtToken(user);
-        // return Ok(new { token });
-
         if (string.IsNullOrWhiteSpace(loginRequest.Username) || string.IsNullOrWhiteSpace(loginRequest.Password))
         {
             _logger.LogError("Login Failed : username or password is NULL");
             return BadRequest();
         }
-
-        var user = await _service.GetUser(loginRequest);
-        if (user is null)
-        {
-            _logger.LogError("Login Failed : Unable to Find user {username}",loginRequest.Username);
-            return BadRequest("User Not Found");
-        }
-
-        var isPasswordValid = await _service.ValidatePassword(loginRequest);
-
-        if (!isPasswordValid)
-        {
-            _logger.LogError("Login Failed : Incorrect password for user {username}",loginRequest.Username);
-            return Unauthorized("Invalid Password Entered");
-        }
+        
         //Generates final response with JWT token
-        var response = await _service.Authenticate(loginRequest);
+        AuthResponse<LoginResponse?> response = await _service.Authenticate(loginRequest);
 
-        _logger.LogInformation("Login successful for user {username}",user.Username);
         return Ok(response);
     }
 

@@ -32,6 +32,7 @@ builder.Services.AddCors(options =>
                       });
 });
 
+
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 

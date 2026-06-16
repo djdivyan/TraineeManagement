@@ -5,7 +5,8 @@ Trainee Management API
 Asp.net core
  
 ## How to Run
-run `dotnet run` in the root of the project directory
+First you need to `git clone https://github.com/djdivyan/TraineeManagement.git` and then go to directory using `cd TraineeManagement`
+then run command `dotnet run` to build and run the backend api, Open swagger in browser by going to `http://localhost:5231/swagger` to test the developed API's
 
 # MySQL Setup Commands (WSL/Ubuntu)
  
@@ -244,6 +245,37 @@ Trainees
 __EFMigrationsHistory
 ```
  
+## Login Credentials for testing 
+# POST /api/auht/login
+```json
+{
+  "username": "admin",
+  "password": "admin"
+}
+```
+- Response of login
+```json
+{
+  "loginResponse": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJhZG1pbiIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc4MTUzMjEwOCwiZXhwIjoxNzgxNTMzOTA4LCJpYXQiOjE3ODE1MzIxMDgsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTIzMS8iLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjUyMzEvIn0.SQHrEzNoc5k36V85ddgLYzqbMpnEAvlNvhiutKYeHVM",
+    "expiresIn": 1799,
+    "responseUser": {
+      "id": 1,
+      "username": "admin",
+      "role": "Admin"
+    }
+  },
+  "exception": null,
+  "statusCode": 0
+}
+```
+
+## JWT usage instructions
+Copy the token from login response and use it with every request sent by the client to protected routes
+```json
+Authorization: Bearer <token>
+```
+
 ## API List
  - GET /api/health
 
@@ -653,5 +685,18 @@ Sample GET    /api/reviews/{id}
 
 ```
 ## Known Limitations
-- Using In-memory database instead of Sql or NoSql database
- 
+- Token refresh
+- Role based Authentication
+
+## Security Checklist
+- [x] Authentication - JWT validation enabled 
+- [x] Authorization - Protected APIs require token 
+- [x] Password storage - Passwords stored as hash only 
+- [x] Excessive data exposure - DTOs used, Password hash not returned 
+- [x] Injection - EF Core used; no unsafe raw SQL 
+- [x] Security misconfiguration - CORS restricted to expected origin 
+- [x] Sensitive data exposure - Secrets not hardcoded in controllers 
+- [x] Error handling - Stack traces not returned 
+- [x] Logging - Passwords and tokens not logged
+
+## Next Improvement areas

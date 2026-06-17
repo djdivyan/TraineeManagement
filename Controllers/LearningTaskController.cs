@@ -26,10 +26,6 @@ public class LearningTaskController(ILearningTaskService service) : ControllerBa
     public async Task<ActionResult<LearningTaskResponse>> GetById(int id)
     {
         LearningTaskResponse? learningTaskResponse = await _service.GetByIdAsync(id);
-
-        if(learningTaskResponse is null)
-            return NotFound();
-
         return Ok(learningTaskResponse);
     }
 
@@ -38,10 +34,8 @@ public class LearningTaskController(ILearningTaskService service) : ControllerBa
     {
 
         LearningTaskResponse? learningTaskResponse = await _service.CreateAsync(learningTaskRequest);
-
         return CreatedAtAction(nameof(Get), new { id = learningTaskResponse.Id }, learningTaskResponse);
     }
-
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateLearningTaskRequest updateLearningTaskRequest)
@@ -50,32 +44,13 @@ public class LearningTaskController(ILearningTaskService service) : ControllerBa
             return BadRequest();
 
         LearningTaskResponse? result = await _service.UpdateAsync(id,updateLearningTaskRequest);
-    
-        if(result is null)
-            return NotFound();
-  
         return Ok(result);
     }
-
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        bool result = await _service.DeleteAsync(id);
-        
-        if (result)
-            return NoContent();
-        else
-            return NotFound();
+        await _service.DeleteAsync(id);
+        return NoContent();
     }
-
-
-    // [HttpGet]
-    // public async Task<PaginationResponse<TraineeResponse>> Get([FromQuery] PaginationRequest paginationRequest)
-    // {
-    //     PaginationResponse<TraineeResponse> result = await _service.GetPagedDataAsync(paginationRequest);
-    //     return result;
-    // }
-
-
 }

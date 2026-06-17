@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Models;
 using TraineeManagementApi.DTOs;
+using TraineeManagementApi.Exceptions;
 using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
@@ -26,13 +27,13 @@ namespace TraineeManagementApi.Services
             return trainees.Select(MapToResponse).ToList();
         }
 
-        public async Task<TraineeResponse?> GetByIdAsync(int id)
+        public async Task<TraineeResponse> GetByIdAsync(int id)
         {
             Trainee? trainee = await _traineeContext.Trainees.FindAsync(id);
             if (trainee is null)
             {
-                _logger.LogError("GetByID : Trainee Not found with {id}", id);
-                return null;
+                _logger.LogWarning("GetByID : Trainee Not found with {id}", id);
+                throw new NotFoundException("Trainee",id);
             }
             _logger.LogInformation("GetByID : Trainee found with {id}", id);
             return MapToResponse(trainee);
@@ -54,18 +55,17 @@ namespace TraineeManagementApi.Services
             _traineeContext.Trainees.Add(trainee);
             await _traineeContext.SaveChangesAsync();
 
-
             _logger.LogInformation("Create : New Trainee created with id {id} at {DateTime}",trainee.Id, trainee.CreatedDate);
             return MapToResponse(trainee);
         }
 
-        public async Task<TraineeResponse?> UpdateAsync(int id, UpdateTraineeRequest updateTraineeRequest)
+        public async Task<TraineeResponse> UpdateAsync(int id, UpdateTraineeRequest updateTraineeRequest)
         {
             Trainee? trainee = await _traineeContext.Trainees.FindAsync(id);
             if(trainee is null)
             {
-              _logger.LogError("Update : Trainee with id {id} Could not be found for updation",id);
-              return null;  
+                _logger.LogError("Update : Trainee with id {id} Could not be found for updation",id);
+                throw new NotFoundException("Trainee",id);
             } 
 
             trainee.FirstName = updateTraineeRequest.FirstName;
@@ -76,7 +76,6 @@ namespace TraineeManagementApi.Services
             trainee.UpdatedDate = DateTime.Now;
 
             await _traineeContext.SaveChangesAsync();
-
 
             _logger.LogInformation("Update : Trainee with id {id} updated at {DateTime}",trainee.Id,trainee.UpdatedDate);
             return MapToResponse(trainee);
@@ -89,10 +88,9 @@ namespace TraineeManagementApi.Services
             if(trainee is null)
             {
                 _logger.LogError("Delete : Trainee with id {id} could not be found for deletion",id);
-                return false;
+                throw new NotFoundException("Trainee",id);
             }
                 
-
             _traineeContext.Trainees.Remove(trainee);
             await _traineeContext.SaveChangesAsync();
 
@@ -140,8 +138,6 @@ namespace TraineeManagementApi.Services
             }
 
             int totalRecords = await query.CountAsync();
-
-
 
             List<TraineeResponse> data = (await query.AsNoTracking()
                             .Skip((paginationRequest.PageNumber - 1)* paginationRequest.PageSize)

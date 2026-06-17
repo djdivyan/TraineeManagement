@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Models;
 using TraineeManagementApi.DTOs;
+using TraineeManagementApi.Exceptions;
 using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
@@ -9,7 +10,6 @@ namespace TraineeManagementApi.Services
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<SubmissionService> _logger = logger;
-
 
         public async Task<List<SubmissionResponse>> GetAllAsync()
         {
@@ -21,23 +21,23 @@ namespace TraineeManagementApi.Services
             return submissions.Select(MapToResponse).ToList();
         }
 
-        public async Task<SubmissionResponse?> GetByIdAsync(int id)
+        public async Task<SubmissionResponse> GetByIdAsync(int id)
         {
             Submission? submission = await _dbContext.Submissions.FindAsync(id);
             if (submission is null)
             {
                 _logger.LogError("GetByID : Submission Not found with {id}", id);
-                return null;
+                throw new NotFoundException("Submission",id);
             }
-            _logger.LogInformation("GetByID : Task Assignments found with {id}", id);
+            _logger.LogInformation("GetByID : TSubmission found with {id}", id);
             return MapToResponse(submission);
         }
 
-        public async Task<SubmissionResponse?> CreateAsync(SubmissionRequest submissionRequest)
+        public async Task<SubmissionResponse> CreateAsync(SubmissionRequest submissionRequest)
         {
             if (await _dbContext.TaskAssignments.FindAsync(submissionRequest.TaskAssignmentId) == null)
             {
-                return null;
+                throw new BadRequestException($"Foreign Key - TaskAssignmentId : {submissionRequest.TaskAssignmentId} Does not Exist");
             }
             
             Submission submission = new()

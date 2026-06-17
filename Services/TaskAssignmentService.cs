@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Models;
 using TraineeManagementApi.DTOs;
+using TraineeManagementApi.Exceptions;
 using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
@@ -9,7 +10,6 @@ namespace TraineeManagementApi.Services
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<TaskAssignmentService> _logger = logger;
-
 
         public async Task<List<TaskAssignmentResponse>> GetAllAsync()
         {
@@ -23,24 +23,29 @@ namespace TraineeManagementApi.Services
             return taskAssignments.Select(MapToResponse).ToList();
         }
 
-        public async Task<TaskAssignmentResponse?> GetByIdAsync(int id)
+        public async Task<TaskAssignmentResponse> GetByIdAsync(int id)
         {
             TaskAssignment? taskAssignment = await _dbContext.TaskAssignments.FindAsync(id);
             if (taskAssignment is null)
             {
                 _logger.LogError("GetByID : Task Assignments Not found with {id}", id);
-                return null;
+                throw new NotFoundException("Task Assignment",id);
             }
             _logger.LogInformation("GetByID : Task Assignments found with {id}", id);
             return MapToResponse(taskAssignment);
         }
 
-        public async Task<TaskAssignmentResponse?> CreateAsync(TaskAssignmentRequest taskAssignmentRequest)
+        public async Task<TaskAssignmentResponse> CreateAsync(TaskAssignmentRequest taskAssignmentRequest)
         {
-            if (await _dbContext.Trainees.FindAsync(taskAssignmentRequest.TraineeId) == null || await _dbContext.Mentors.FindAsync(taskAssignmentRequest.MentorId) == null || await _dbContext.LearningTasks.FindAsync(taskAssignmentRequest.LearningTaskId) == null )
+            if (await _dbContext.Trainees.FindAsync(taskAssignmentRequest.TraineeId) == null || await _dbContext.Mentors.FindAsync(taskAssignmentRequest.MentorId) == null)
             {
-                return null;
+                throw new BadRequestException($"Foreign Key - TraineeId : {taskAssignmentRequest.TraineeId} Does not Exist");
             }
+            if (await _dbContext.LearningTasks.FindAsync(taskAssignmentRequest.LearningTaskId) == null)
+            {
+                throw new BadRequestException($"Foreign Key - LearningTaskId : {taskAssignmentRequest.LearningTaskId} Does not Exist");                
+            }
+
             TaskAssignment taskAssignment = new()
             {
                 TraineeId = taskAssignmentRequest.TraineeId,
@@ -59,23 +64,21 @@ namespace TraineeManagementApi.Services
             return MapToResponse(taskAssignment);
         }
 
-        public async Task<TaskAssignmentResponse?> UpdateAsync(int id, UpdateTaskAssignmentRequest updateTaskAssignmentRequest)
+        public async Task<TaskAssignmentResponse> UpdateAsync(int id, UpdateTaskAssignmentRequest updateTaskAssignmentRequest)
         {
             TaskAssignment? taskAssignment = await _dbContext.TaskAssignments.FindAsync(id);
             if (taskAssignment is null)
             {
                 _logger.LogError("Update : Task Assignment with id {id} Could not be found for updation", id);
-                return null;
+                throw new NotFoundException("Task Assignment",id);
             }
 
             taskAssignment.TaskAssignmentStatus = updateTaskAssignmentRequest.TaskAssignmentStatus;
             await _dbContext.SaveChangesAsync();
 
-
             _logger.LogInformation("Update : Task Assignment with id {id} updated with status {status}", taskAssignment.Id, taskAssignment.TaskAssignmentStatus);
             return MapToResponse(taskAssignment);
         }
-
 
         public static TaskAssignmentResponse MapToResponse(TaskAssignment taskAssignment)
         {
@@ -94,72 +97,5 @@ namespace TraineeManagementApi.Services
                 Remarks = taskAssignment.Remarks
             };
         }
-
-        // public async Task<bool> DeleteAsync(int id)
-        // {
-        //     TaskAssignment? taskAssignment = await _dbContext.TaskAssignments.FindAsync(id);
-        //     if (taskAssignment is null)
-        //     {
-        //         _logger.LogError("Delete : Task Assignment with id {id} could not be found for deletion", id);
-        //         return false;
-        //     }
-
-
-        //     _dbContext.TaskAssignments.Remove(taskAssignment);
-        //     await _dbContext.SaveChangesAsync();
-
-        //     _logger.LogInformation("Delete : Task Assignment with id {id} deleted", id);
-        //     return true;
-        // }
-
-
-        
-        // public async Task<PaginationResponse<MentorResponse>> GetPagedDataAsync(PaginationRequest paginationRequest)
-        // {
-        //     var query = _dbContext.Mentors.AsQueryable();
-
-        //     if (!string.IsNullOrEmpty(paginationRequest.Search))
-        //     {
-        //         _logger.LogInformation("Get : Searching {search} in Database",paginationRequest.Search);
-        //         query = query.Where(m =>
-        //           m.FirstName.Contains(paginationRequest.Search) ||   
-        //           m.LastName.Contains(paginationRequest.Search) ||
-        //           m.Email.Contains(paginationRequest.Search) ||
-        //           m.Expertise.Contains(paginationRequest.Search)
-        //         );
-        //     }
-
-
-        //     if (!string.IsNullOrEmpty(paginationRequest.Status.ToString()))
-        //     {
-        //         _logger.LogInformation("Get : Filter with status {Status} in Database",paginationRequest.Status.ToString());
-        //         query = query.Where(t =>
-        //         t.MentorStatus == paginationRequest.Status
-        //         );
-        //     }
-
-        //     var totalRecords = await query.CountAsync();
-
-
-
-        //     var data = (await query.AsNoTracking()
-        //                     .Skip((paginationRequest.PageNumber - 1)* paginationRequest.PageSize)
-        //                     .Take(paginationRequest.PageSize)
-        //                     .ToListAsync())
-        //                     .Select(MapToResponse)
-        //                     .ToList(); 
-
-        //     var result = new PaginationResponse<MentorResponse>
-        //     {
-        //         PageNumber = paginationRequest.PageNumber,
-        //         PageSize = paginationRequest.PageSize,
-        //         TotalRecords = totalRecords,
-        //         Data = data
-        //     };
-
-        //     _logger.LogInformation("Get: Successfully returned Mentors with PageNumber {PageNUmber} and PageSize {PageSize}",paginationRequest.PageNumber,paginationRequest.PageNumber);
-
-        //     return result;
-        // }
     }
 }

@@ -25,11 +25,7 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<SubmissionResponse>> GetById(int id)
     {
-        SubmissionResponse? submissionResponse = await _service.GetByIdAsync(id);
-
-        if(submissionResponse is null)
-            return NotFound();
-
+        SubmissionResponse submissionResponse = await _service.GetByIdAsync(id);
         return Ok(submissionResponse);
     }
 
@@ -37,13 +33,7 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
     public async Task<IActionResult> Post([FromBody] SubmissionRequest submissionRequest)
     {
 
-        SubmissionResponse? submissionResponse = await _service.CreateAsync(submissionRequest);
-
-        if (submissionResponse is null)
-        {
-            return BadRequest();
-        }
-
+        SubmissionResponse submissionResponse = await _service.CreateAsync(submissionRequest);
         return CreatedAtAction(nameof(Get), new { id = submissionResponse.Id }, submissionResponse);
     }
 

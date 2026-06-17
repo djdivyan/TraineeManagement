@@ -25,26 +25,14 @@ public class ReviewController(IReviewService service) : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ReviewResponse>> GetById(int id)
     {
-        ReviewResponse? reviewResponse = await _service.GetByIdAsync(id);
-
-        if(reviewResponse is null)
-            return NotFound();
-
+        ReviewResponse reviewResponse = await _service.GetByIdAsync(id);
         return Ok(reviewResponse);
     }
 
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] ReviewRequest reviewRequest)
     {
-
-        ReviewResponse? reviewResponse = await _service.CreateAsync(reviewRequest);
-
-        if (reviewResponse is null)
-        {
-            return BadRequest();
-        }
-
+        ReviewResponse reviewResponse = await _service.CreateAsync(reviewRequest);
         return CreatedAtAction(nameof(Get), new { id = reviewResponse.Id }, reviewResponse);
     }
-
 }

@@ -25,11 +25,7 @@ public class TaskAssignmentController(ITaskAssignmentService service) : Controll
     [HttpGet("{id}")]
     public async Task<ActionResult<TaskAssignmentResponse>> GetById(int id)
     {
-        TaskAssignmentResponse? taskAssignmentResponse = await _service.GetByIdAsync(id);
-
-        if(taskAssignmentResponse is null)
-            return NotFound();
-
+        TaskAssignmentResponse taskAssignmentResponse = await _service.GetByIdAsync(id);
         return Ok(taskAssignmentResponse);
     }
 
@@ -37,16 +33,9 @@ public class TaskAssignmentController(ITaskAssignmentService service) : Controll
     public async Task<IActionResult> Post([FromBody] TaskAssignmentRequest taskAssignmentRequest)
     {
 
-        TaskAssignmentResponse? taskAssignmentResponse = await _service.CreateAsync(taskAssignmentRequest);
-
-        if (taskAssignmentResponse is null)
-        {
-            return BadRequest();
-        }
-
+        TaskAssignmentResponse taskAssignmentResponse = await _service.CreateAsync(taskAssignmentRequest);
         return CreatedAtAction(nameof(Get), new { id = taskAssignmentResponse.Id }, taskAssignmentResponse);
     }
-
 
     [HttpPut("{id}/status")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateTaskAssignmentRequest updateTaskAssignmentRequest)
@@ -54,33 +43,7 @@ public class TaskAssignmentController(ITaskAssignmentService service) : Controll
         if (id != updateTaskAssignmentRequest.Id)
             return BadRequest();
 
-        TaskAssignmentResponse? result = await _service.UpdateAsync(id,updateTaskAssignmentRequest);
-    
-        if(result is null)
-            return NotFound();
-  
+        TaskAssignmentResponse result = await _service.UpdateAsync(id,updateTaskAssignmentRequest);
         return Ok(result);
     }
-
-
-    // [HttpDelete("{id}")]
-    // public async Task<IActionResult> Delete(int id)
-    // {
-    //     bool result = await _service.DeleteAsync(id);
-        
-    //     if (result)
-    //         return NoContent();
-    //     else
-    //         return NotFound();
-    // }
-
-
-    // [HttpGet]
-    // public async Task<PaginationResponse<TraineeResponse>> Get([FromQuery] PaginationRequest paginationRequest)
-    // {
-    //     PaginationResponse<TraineeResponse> result = await _service.GetPagedDataAsync(paginationRequest);
-    //     return result;
-    // }
-
-
 }

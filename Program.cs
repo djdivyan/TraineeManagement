@@ -10,7 +10,6 @@ using Microsoft.OpenApi;
 using TraineeManagementApi.DTOs;
 using Microsoft.JSInterop.Infrastructure;
 using DotNetEnv;
-using Microsoft.AspNetCore.Diagnostics;
 
 Env.Load();
 
@@ -125,6 +124,9 @@ builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
 builder.Services.AddScoped<ISubmissionService, SubmissionService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
+//Exception
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
@@ -137,24 +139,25 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(); // Serves Swagger UI
 }
 
-
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 //Exception handling 
-app.UseExceptionHandler(options =>
-{
-    options.Run(async context =>
-    {
-       context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-       context.Response.ContentType = "application/json";
+// app.UseExceptionHandler(options =>
+// {
+//     options.Run(async context =>
+//     {
+//        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+//        context.Response.ContentType = "application/json";
 
-       var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+//        var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
        
-       if (exceptionHandlerPathFeature is not null)
-       {
-        var error = new {message = "An unexpected error occurred. Please try again later."};
-        await context.Response.WriteAsJsonAsync(error);
-       }
-    });
-});
+//        if (exceptionHandlerPathFeature is not null)
+//        {
+//         var error = new {message = "An unexpected error occurred. Please try again later."};
+//         await context.Response.WriteAsJsonAsync(error);
+//        }
+//     });
+// });
 
 
 app.UseHttpsRedirection();

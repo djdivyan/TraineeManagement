@@ -28,22 +28,15 @@ public class TraineesController(ITraineeService service) : ControllerBase
     public async Task<ActionResult<TraineeResponse>> GetById(int id)
     {
         TraineeResponse? trainee = await _service.GetByIdAsync(id);
-
-        if(trainee is null)
-            return NotFound();
-
         return Ok(trainee);
     }
 
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateTraineeRequest createTraineeRequest)
     {
-
-        TraineeResponse? traineeResponse = await _service.CreateAsync(createTraineeRequest);
-
+        TraineeResponse traineeResponse = await _service.CreateAsync(createTraineeRequest);
         return CreatedAtAction(nameof(Get), new { id = traineeResponse.Id }, traineeResponse);
     }
-
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateTraineeRequest updateTraineeRequest)
@@ -51,26 +44,16 @@ public class TraineesController(ITraineeService service) : ControllerBase
         if (id != updateTraineeRequest.Id)
             return BadRequest();
 
-        TraineeResponse? result = await _service.UpdateAsync(id,updateTraineeRequest);
-    
-        if(result is null)
-            return NotFound();
-  
+        TraineeResponse result = await _service.UpdateAsync(id,updateTraineeRequest);
         return Ok(result);
     }
-
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        bool result = await _service.DeleteAsync(id);
-        
-        if (result)
-            return NoContent();
-        else
-            return NotFound();
+        await _service.DeleteAsync(id);
+        return NoContent();
     }
-
 
     [HttpGet]
     public async Task<PaginationResponse<TraineeResponse>> Get([FromQuery] PaginationRequest paginationRequest)
@@ -78,6 +61,4 @@ public class TraineesController(ITraineeService service) : ControllerBase
         PaginationResponse<TraineeResponse> result = await _service.GetPagedDataAsync(paginationRequest);
         return result;
     }
-
-
 }

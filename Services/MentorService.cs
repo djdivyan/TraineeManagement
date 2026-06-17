@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Models;
 using TraineeManagementApi.DTOs;
+using TraineeManagementApi.Exceptions;
 using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
@@ -10,7 +11,6 @@ namespace TraineeManagementApi.Services
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<MentorService> _logger = logger;
         
-
         public async Task<List<MentorResponse>> GetAllAsync(string? search)
         {
             IQueryable<Mentor> query = _dbContext.Mentors.AsQueryable();
@@ -33,7 +33,7 @@ namespace TraineeManagementApi.Services
             if (mentor is null)
             {
                 _logger.LogError("GetByID : Mentor Not found with {id}", id);
-                return null;
+                throw new NotFoundException("Mentor",id);
             }
             _logger.LogInformation("GetByID : Mentor found with {id}", id);
             return MapToResponse(mentor);
@@ -55,7 +55,6 @@ namespace TraineeManagementApi.Services
             _dbContext.Mentors.Add(mentor);
             await _dbContext.SaveChangesAsync();
 
-
             _logger.LogInformation("Create : New Mentor created with id {id} at {DateTime}",mentor.Id, mentor.CreatedDate);
             return MapToResponse(mentor);
         }
@@ -65,8 +64,8 @@ namespace TraineeManagementApi.Services
             Mentor? mentor = await _dbContext.Mentors.FindAsync(id);
             if(mentor is null)
             {
-              _logger.LogError("Update : Mentor with id {id} Could not be found for updation",id);
-              return null;  
+                _logger.LogError("Update : Mentor with id {id} Could not be found for updation",id);
+                throw new NotFoundException("Mentor",id);
             } 
             mentor.FirstName = updateMentoreRequest.FirstName;
             mentor.LastName = updateMentoreRequest.LastName;
@@ -76,7 +75,6 @@ namespace TraineeManagementApi.Services
             mentor.UpdatedDate = DateTime.Now;
 
             await _dbContext.SaveChangesAsync();
-
 
             _logger.LogInformation("Update : Mentor with id {id} updated at {DateTime}",mentor.Id,mentor.UpdatedDate);
             return MapToResponse(mentor);
@@ -88,9 +86,8 @@ namespace TraineeManagementApi.Services
             if(mentor is null)
             {
                 _logger.LogError("Delete : Mentor with id {id} could not be found for deletion",id);
-                return false;
+                throw new NotFoundException("Mentor",id);
             }
-                
 
             _dbContext.Mentors.Remove(mentor);
             await _dbContext.SaveChangesAsync();
@@ -113,53 +110,5 @@ namespace TraineeManagementApi.Services
                 UpdatedDate = mentor.UpdatedDate
             };
         }
-
-        // public async Task<PaginationResponse<MentorResponse>> GetPagedDataAsync(PaginationRequest paginationRequest)
-        // {
-        //     var query = _dbContext.Mentors.AsQueryable();
-
-        //     if (!string.IsNullOrEmpty(paginationRequest.Search))
-        //     {
-        //         _logger.LogInformation("Get : Searching {search} in Database",paginationRequest.Search);
-        //         query = query.Where(m =>
-        //           m.FirstName.Contains(paginationRequest.Search) ||   
-        //           m.LastName.Contains(paginationRequest.Search) ||
-        //           m.Email.Contains(paginationRequest.Search) ||
-        //           m.Expertise.Contains(paginationRequest.Search)
-        //         );
-        //     }
-
-
-        //     if (!string.IsNullOrEmpty(paginationRequest.Status.ToString()))
-        //     {
-        //         _logger.LogInformation("Get : Filter with status {Status} in Database",paginationRequest.Status.ToString());
-        //         query = query.Where(t =>
-        //         t.MentorStatus == paginationRequest.Status
-        //         );
-        //     }
-
-        //     var totalRecords = await query.CountAsync();
-
-
-
-        //     var data = (await query.AsNoTracking()
-        //                     .Skip((paginationRequest.PageNumber - 1)* paginationRequest.PageSize)
-        //                     .Take(paginationRequest.PageSize)
-        //                     .ToListAsync())
-        //                     .Select(MapToResponse)
-        //                     .ToList(); 
-
-        //     var result = new PaginationResponse<MentorResponse>
-        //     {
-        //         PageNumber = paginationRequest.PageNumber,
-        //         PageSize = paginationRequest.PageSize,
-        //         TotalRecords = totalRecords,
-        //         Data = data
-        //     };
-
-        //     _logger.LogInformation("Get: Successfully returned Mentors with PageNumber {PageNUmber} and PageSize {PageSize}",paginationRequest.PageNumber,paginationRequest.PageNumber);
-
-        //     return result;
-        // }
     }
 }

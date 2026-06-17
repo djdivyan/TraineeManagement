@@ -6,8 +6,8 @@ namespace TraineeManagementApi.Services
     public interface IReviewService
     {
         Task<List<ReviewResponse>> GetAllAsync();
-        Task<ReviewResponse?> GetByIdAsync(int id);        
-        Task<ReviewResponse?> CreateAsync(ReviewRequest request);
+        Task<ReviewResponse> GetByIdAsync(int id);        
+        Task<ReviewResponse> CreateAsync(ReviewRequest request);
     
     } 
 }

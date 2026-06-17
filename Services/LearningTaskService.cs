@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Models;
 using TraineeManagementApi.DTOs;
+using TraineeManagementApi.Exceptions;
 using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
@@ -10,7 +11,6 @@ namespace TraineeManagementApi.Services
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<LearningTaskService> _logger = logger;
         
-
         public async Task<List<LearningTaskResponse>> GetAllAsync(string? search)
         {
             IQueryable<LearningTask> query = _dbContext.LearningTasks.AsQueryable();
@@ -31,9 +31,10 @@ namespace TraineeManagementApi.Services
             LearningTask? learningTask = await _dbContext.LearningTasks.FindAsync(id);
             if (learningTask is null)
             {
-                _logger.LogError("GetByID : Learning Task Not found with {id}", id);
-                return null;
+                _logger.LogWarning("GetByID : Learning Task Not found with {id}", id);
+                throw new NotFoundException("Learning Task",id);
             }
+
             _logger.LogInformation("GetByID : Learning Task found with {id}", id);
             return MapToResponse(learningTask);
         }
@@ -54,7 +55,6 @@ namespace TraineeManagementApi.Services
             _dbContext.LearningTasks.Add(learningTask);
             await _dbContext.SaveChangesAsync();
 
-
             _logger.LogInformation("Create : New Learning Task created with id {id} at {DateTime}",learningTask.Id, learningTask.CreatedDate);
             return MapToResponse(learningTask);
         }
@@ -65,7 +65,7 @@ namespace TraineeManagementApi.Services
             if(learningTask is null)
             {
               _logger.LogError("Update : Learning Task with id {id} Could not be found for updation",id);
-              return null;  
+             throw new NotFoundException("Learning Task",id);
             } 
             learningTask.Title = updateLearningTaskRequest.Title;
             learningTask.Description = updateLearningTaskRequest.Description;
@@ -75,7 +75,6 @@ namespace TraineeManagementApi.Services
             learningTask.UpdatedDate = DateTime.Now;
 
             await _dbContext.SaveChangesAsync();
-
 
             _logger.LogInformation("Update : Learning Task with id {id} updated at {DateTime}",learningTask.Id,learningTask.UpdatedDate);
             return MapToResponse(learningTask);
@@ -87,10 +86,9 @@ namespace TraineeManagementApi.Services
             if(learningTask is null)
             {
                 _logger.LogError("Delete : Learning Task with id {id} could not be found for deletion",id);
-                return false;
+                throw new NotFoundException("Learning Task",id);
             }
                 
-
             _dbContext.LearningTasks.Remove(learningTask);
             await _dbContext.SaveChangesAsync();
 
@@ -112,53 +110,5 @@ namespace TraineeManagementApi.Services
                 UpdatedDate = learningTask.UpdatedDate
             };
         }
-
-        // public async Task<PaginationResponse<MentorResponse>> GetPagedDataAsync(PaginationRequest paginationRequest)
-        // {
-        //     var query = _dbContext.Mentors.AsQueryable();
-
-        //     if (!string.IsNullOrEmpty(paginationRequest.Search))
-        //     {
-        //         _logger.LogInformation("Get : Searching {search} in Database",paginationRequest.Search);
-        //         query = query.Where(m =>
-        //           m.FirstName.Contains(paginationRequest.Search) ||   
-        //           m.LastName.Contains(paginationRequest.Search) ||
-        //           m.Email.Contains(paginationRequest.Search) ||
-        //           m.Expertise.Contains(paginationRequest.Search)
-        //         );
-        //     }
-
-
-        //     if (!string.IsNullOrEmpty(paginationRequest.Status.ToString()))
-        //     {
-        //         _logger.LogInformation("Get : Filter with status {Status} in Database",paginationRequest.Status.ToString());
-        //         query = query.Where(t =>
-        //         t.MentorStatus == paginationRequest.Status
-        //         );
-        //     }
-
-        //     var totalRecords = await query.CountAsync();
-
-
-
-        //     var data = (await query.AsNoTracking()
-        //                     .Skip((paginationRequest.PageNumber - 1)* paginationRequest.PageSize)
-        //                     .Take(paginationRequest.PageSize)
-        //                     .ToListAsync())
-        //                     .Select(MapToResponse)
-        //                     .ToList(); 
-
-        //     var result = new PaginationResponse<MentorResponse>
-        //     {
-        //         PageNumber = paginationRequest.PageNumber,
-        //         PageSize = paginationRequest.PageSize,
-        //         TotalRecords = totalRecords,
-        //         Data = data
-        //     };
-
-        //     _logger.LogInformation("Get: Successfully returned Mentors with PageNumber {PageNUmber} and PageSize {PageSize}",paginationRequest.PageNumber,paginationRequest.PageNumber);
-
-        //     return result;
-        // }
     }
 }

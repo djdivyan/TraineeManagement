@@ -13,33 +13,42 @@ namespace TraineeManagementApi.Services
 
         public async Task<List<TaskAssignmentResponse>> GetAllAsync()
         {
+            _logger.LogInformation("GetAllAsync:TaskAssignment : Entering the Function");
             IQueryable<TaskAssignment> query = _dbContext.TaskAssignments.AsNoTracking();
                                                         // .Include(ta => ta.Trainee)
                                                         // .Include(ta => ta.Mentor)
                                                         // .Include(ta => ta.LearningTask);
 
             List<TaskAssignment> taskAssignments = await query.ToListAsync();
-            _logger.LogInformation("GetAllAsnc Successfully returned all Task Assignments");
+            _logger.LogInformation("GetAllAsync:TaskAssignment : Successfully returned all Task Assignments");
             return taskAssignments.Select(MapToResponse).ToList();
         }
 
         public async Task<TaskAssignmentResponse> GetByIdAsync(int id)
         {
+            _logger.LogInformation("GetByIdAsync:TaskAssignment : Entering the Function");
+
             TaskAssignment? taskAssignment = await _dbContext.TaskAssignments.FindAsync(id);
             if (taskAssignment is null)
             {
-                _logger.LogError("GetByID : Task Assignments Not found with {id}", id);
+                _logger.LogError("GetByIdAsync:TaskAssignment : Task Assignments Not found with {id}", id);
                 throw new NotFoundException("Task Assignment",id);
             }
-            _logger.LogInformation("GetByID : Task Assignments found with {id}", id);
+            _logger.LogInformation("GetByIdAsync:TaskAssignment : Task Assignments found with {id}", id);
             return MapToResponse(taskAssignment);
         }
 
         public async Task<TaskAssignmentResponse> CreateAsync(TaskAssignmentRequest taskAssignmentRequest)
         {
-            if (await _dbContext.Trainees.FindAsync(taskAssignmentRequest.TraineeId) == null || await _dbContext.Mentors.FindAsync(taskAssignmentRequest.MentorId) == null)
+            _logger.LogInformation("CreateAsync:TaskAssignment : Entering the Function");
+
+            if (await _dbContext.Trainees.FindAsync(taskAssignmentRequest.TraineeId) == null)
             {
                 throw new BadRequestException($"Foreign Key - TraineeId : {taskAssignmentRequest.TraineeId} Does not Exist");
+            }
+            if (await _dbContext.Mentors.FindAsync(taskAssignmentRequest.MentorId) == null)
+            {
+                throw new BadRequestException($"Foreign Key - MentorId : {taskAssignmentRequest.MentorId} Does not Exist");
             }
             if (await _dbContext.LearningTasks.FindAsync(taskAssignmentRequest.LearningTaskId) == null)
             {
@@ -60,23 +69,24 @@ namespace TraineeManagementApi.Services
             _dbContext.TaskAssignments.Add(taskAssignment);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Create : New Task Assignment created with id {id} ", taskAssignment.Id);
+            _logger.LogInformation("CreateAsync:TaskAssignment : New Task Assignment created with id {id} ", taskAssignment.Id);
             return MapToResponse(taskAssignment);
         }
 
         public async Task<TaskAssignmentResponse> UpdateAsync(int id, UpdateTaskAssignmentRequest updateTaskAssignmentRequest)
         {
+            _logger.LogInformation("UpdateAsync:TaskAssignment : Entering the Function");
             TaskAssignment? taskAssignment = await _dbContext.TaskAssignments.FindAsync(id);
             if (taskAssignment is null)
             {
-                _logger.LogError("Update : Task Assignment with id {id} Could not be found for updation", id);
+                _logger.LogError("UpdateAsync:TaskAssignment : Task Assignment with id {id} Could not be found for updation", id);
                 throw new NotFoundException("Task Assignment",id);
             }
 
             taskAssignment.TaskAssignmentStatus = updateTaskAssignmentRequest.TaskAssignmentStatus;
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Update : Task Assignment with id {id} updated with status {status}", taskAssignment.Id, taskAssignment.TaskAssignmentStatus);
+            _logger.LogInformation("UpdateAsync:TaskAssignment : Task Assignment with id {id} updated with status {status}", taskAssignment.Id, taskAssignment.TaskAssignmentStatus);
             return MapToResponse(taskAssignment);
         }
 

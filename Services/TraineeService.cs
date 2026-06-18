@@ -11,9 +11,10 @@ namespace TraineeManagementApi.Services
         private readonly AppDbContext _traineeContext = trainees;
         private readonly ILogger<TraineeService> _logger = logger;
         
-
         public async Task<IEnumerable<TraineeResponse>> GetAllAsync(string? search)
         {
+            _logger.LogInformation("GetAllAsync:Trainee : Entering the Function");
+
             IQueryable<Trainee> query = _traineeContext.Trainees.AsQueryable();
             if(!string.IsNullOrEmpty(search))
                 query = query.Where(
@@ -23,24 +24,28 @@ namespace TraineeManagementApi.Services
                     t.TechStack.Contains(search));
         
             List<Trainee> trainees = await query.ToListAsync();
-            _logger.LogInformation("GetAllAsnc Successfully returned trainees");
+            _logger.LogInformation("GetAllAsync:Trainee : Successfully returned trainees");
             return trainees.Select(MapToResponse).ToList();
         }
 
         public async Task<TraineeResponse> GetByIdAsync(int id)
         {
+            _logger.LogInformation("GetByIdAsync:Trainee : Entering the Function");
+
             Trainee? trainee = await _traineeContext.Trainees.FindAsync(id);
             if (trainee is null)
             {
-                _logger.LogWarning("GetByID : Trainee Not found with {id}", id);
+                _logger.LogWarning("GetByIdAsync:Trainee : Trainee Not found with {id}", id);
                 throw new NotFoundException("Trainee",id);
             }
-            _logger.LogInformation("GetByID : Trainee found with {id}", id);
+            _logger.LogInformation("GetByIdAsync:Trainee : Trainee found with {id}", id);
             return MapToResponse(trainee);
         }
 
         public async Task<TraineeResponse> CreateAsync(CreateTraineeRequest createTraineeRequest)
         {
+            _logger.LogInformation("CreateAsync:Trainee : Entering the Function");
+
             Trainee trainee = new Trainee
             {
                 FirstName = createTraineeRequest.FirstName,
@@ -55,16 +60,18 @@ namespace TraineeManagementApi.Services
             _traineeContext.Trainees.Add(trainee);
             await _traineeContext.SaveChangesAsync();
 
-            _logger.LogInformation("Create : New Trainee created with id {id} at {DateTime}",trainee.Id, trainee.CreatedDate);
+            _logger.LogInformation("CreateAsync:Trainee : New Trainee created with id {id} at {DateTime}",trainee.Id, trainee.CreatedDate);
             return MapToResponse(trainee);
         }
 
         public async Task<TraineeResponse> UpdateAsync(int id, UpdateTraineeRequest updateTraineeRequest)
         {
+            _logger.LogInformation("UpdateAsync:Trainee : Entering the Function");
+
             Trainee? trainee = await _traineeContext.Trainees.FindAsync(id);
             if(trainee is null)
             {
-                _logger.LogError("Update : Trainee with id {id} Could not be found for updation",id);
+                _logger.LogError("UpdateAsync:Trainee : Trainee with id {id} Could not be found for updation",id);
                 throw new NotFoundException("Trainee",id);
             } 
 
@@ -77,24 +84,26 @@ namespace TraineeManagementApi.Services
 
             await _traineeContext.SaveChangesAsync();
 
-            _logger.LogInformation("Update : Trainee with id {id} updated at {DateTime}",trainee.Id,trainee.UpdatedDate);
+            _logger.LogInformation("UpdateAsync:Trainee : Trainee with id {id} updated at {DateTime}",trainee.Id,trainee.UpdatedDate);
             return MapToResponse(trainee);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
+            _logger.LogInformation("DeleteAsync:Trainee : Entering the Function");
+
             Trainee? trainee = await _traineeContext.Trainees.FindAsync(id);
             
             if(trainee is null)
             {
-                _logger.LogError("Delete : Trainee with id {id} could not be found for deletion",id);
+                _logger.LogError("DeleteAsync:Trainee : Trainee with id {id} could not be found for deletion",id);
                 throw new NotFoundException("Trainee",id);
             }
                 
             _traineeContext.Trainees.Remove(trainee);
             await _traineeContext.SaveChangesAsync();
 
-            _logger.LogInformation("Delete : Trainee with id {id} deleted",id);
+            _logger.LogInformation("DeleteAsync:Trainee : Trainee with id {id} deleted",id);
             return true;
         }
 
@@ -115,11 +124,13 @@ namespace TraineeManagementApi.Services
 
         public async Task<PaginationResponse<TraineeResponse>> GetPagedDataAsync(PaginationRequest paginationRequest)
         {
+            _logger.LogInformation("GetPagedDataAsync:Trainee : Entering the Function");
+
             IQueryable<Trainee> query = _traineeContext.Trainees.AsQueryable();
 
             if (!string.IsNullOrEmpty(paginationRequest.Search))
             {
-                _logger.LogInformation("Get : Searching {search} in Database",paginationRequest.Search);
+                _logger.LogInformation("GetPagedDataAsync:Trainee : Searching {search} in Database",paginationRequest.Search);
                 query = query.Where(t =>
                   t.FirstName.Contains(paginationRequest.Search) ||   
                   t.LastName.Contains(paginationRequest.Search) ||
@@ -131,7 +142,7 @@ namespace TraineeManagementApi.Services
 
             if (!string.IsNullOrEmpty(paginationRequest.Status.ToString()))
             {
-                _logger.LogInformation("Get : Filter with status {Status} in Database",paginationRequest.Status.ToString());
+                _logger.LogInformation("GetPagedDataAsync:Trainee : Filtering with status {Status} in Database",paginationRequest.Status.ToString());
                 query = query.Where(t =>
                 t.Status == paginationRequest.Status
                 );
@@ -154,7 +165,7 @@ namespace TraineeManagementApi.Services
                 Data = data
             };
 
-            _logger.LogInformation("Get: Successfully returned trainees with PageNumber {PageNUmber} and PageSize {PageSize}",paginationRequest.PageNumber,paginationRequest.PageNumber);
+            _logger.LogInformation("GetPagedDataAsync:Trainee : Successfully returned trainees with PageNumber {PageNUmber} and PageSize {PageSize}",paginationRequest.PageNumber,paginationRequest.PageNumber);
 
             return result;
         }

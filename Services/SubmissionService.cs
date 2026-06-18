@@ -13,28 +13,31 @@ namespace TraineeManagementApi.Services
 
         public async Task<List<SubmissionResponse>> GetAllAsync()
         {
+            _logger.LogInformation("GetAllAsync:Submission : Entering the Function");            
             IQueryable<Submission> query = _dbContext.Submissions.AsNoTracking();
                                                         // .Include(ta => ta.TaskAssignment);
 
             List<Submission> submissions = await query.ToListAsync();
-            _logger.LogInformation("GetAllAsnc Successfully returned all Submissions");
+            _logger.LogInformation("GetAllAsync:Submission : Successfully returned all Submissions");
             return submissions.Select(MapToResponse).ToList();
         }
 
         public async Task<SubmissionResponse> GetByIdAsync(int id)
         {
+            _logger.LogInformation("GetByIdAsync:Submission : Entering the Function");            
             Submission? submission = await _dbContext.Submissions.FindAsync(id);
             if (submission is null)
             {
-                _logger.LogError("GetByID : Submission Not found with {id}", id);
+                _logger.LogError("GetByIdAsync:Submission : Submission Not found with {id}", id);
                 throw new NotFoundException("Submission",id);
             }
-            _logger.LogInformation("GetByID : TSubmission found with {id}", id);
+            _logger.LogInformation("GetByIdAsync:Submission : TSubmission found with {id}", id);
             return MapToResponse(submission);
         }
 
         public async Task<SubmissionResponse> CreateAsync(SubmissionRequest submissionRequest)
         {
+            _logger.LogInformation("CreateAsync:Submission : Entering the Function");            
             if (await _dbContext.TaskAssignments.FindAsync(submissionRequest.TaskAssignmentId) == null)
             {
                 throw new BadRequestException($"Foreign Key - TaskAssignmentId : {submissionRequest.TaskAssignmentId} Does not Exist");
@@ -52,7 +55,7 @@ namespace TraineeManagementApi.Services
             _dbContext.Submissions.Add(submission);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Create : New Submission created with id {id} ", submission.Id);
+            _logger.LogInformation("CreateAsync:Submission : New Submission created with id {id} ", submission.Id);
             return MapToResponse(submission);
         }
 

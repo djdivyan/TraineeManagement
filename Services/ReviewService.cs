@@ -14,29 +14,34 @@ namespace TraineeManagementApi.Services
 
         public async Task<List<ReviewResponse>> GetAllAsync()
         {
+            _logger.LogInformation("GetAllAsync:Review : Entering the Function");
             IQueryable<Review> query = _dbContext.Reviews.AsNoTracking();
                                                         // .Include(e => e.Submission)
                                                         // .Include(e => e.Mentor);
 
             List<Review> reviews = await query.ToListAsync();
-            _logger.LogInformation("GetAllAsnc Successfully returned all Reviews");
+            _logger.LogInformation("GetAllAsync:Review :  Successfully returned all Reviews");
             return reviews.Select(MapToResponse).ToList();
         }
 
         public async Task<ReviewResponse> GetByIdAsync(int id)
         {
+            _logger.LogInformation("GetByIdAsync:Review : Entering the Function");            
+
             Review? review = await _dbContext.Reviews.FindAsync(id);
             if (review is null)
             {
-                _logger.LogError("GetByID : Review Not found with {id}", id);
+                _logger.LogError("GetByIdAsync:Review : Review Not found with {id}", id);
                 throw new NotFoundException("Review",id);
             }
-            _logger.LogInformation("GetByID : Review found with {id}", id);
+            _logger.LogInformation("GetByIdAsync:Review : Review found with {id}", id);
             return MapToResponse(review);
         }
 
         public async Task<ReviewResponse> CreateAsync(ReviewRequest reviewRequest)
         {
+            _logger.LogInformation("CreateAsync:Review : Entering the Function");
+
             if (await _dbContext.Submissions.FindAsync(reviewRequest.SubmissionId) == null )
             {
                 throw new BadRequestException($"Foreign Key - Submission Id : {reviewRequest.SubmissionId} Does not Exist");
@@ -59,7 +64,7 @@ namespace TraineeManagementApi.Services
             _dbContext.Reviews.Add(review);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Create : New Review created with id {id} ", review.Id);
+            _logger.LogInformation("CreateAsync:Review : New Review created with id {id} ", review.Id);
             return MapToResponse(review);
         }
 

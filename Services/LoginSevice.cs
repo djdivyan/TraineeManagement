@@ -19,6 +19,7 @@ namespace TraineeManagementApi.Services
 
         public async Task<AuthResponse<LoginResponse?>> Authenticate(LoginRequest loginRequest)
         {
+            _logger.LogInformation("Authenticate:Login : Entering the Function");
             AuthResponse<LoginResponse?> authResponse = new();
             
             //Check if User Present
@@ -28,7 +29,7 @@ namespace TraineeManagementApi.Services
 
                 authResponse.Exception = "User Not Found";
                 authResponse.StatusCode = 10001;
-                _logger.LogError("Login Failed : Unable to Find user {username}",loginRequest.Username);
+                _logger.LogError("Authenticate:Login : Login Failed : Unable to Find user {username}",loginRequest.Username);
                 return authResponse;
             }
 
@@ -40,7 +41,7 @@ namespace TraineeManagementApi.Services
 
                 authResponse.Exception = "Password is Invalid";
                 authResponse.StatusCode = 1002;
-                _logger.LogError("Login Failed : Incorrect password for user {username}",loginRequest.Username);
+                _logger.LogError("Authenticate:Login : Login Failed : Incorrect password for user {username}",loginRequest.Username);
                 return authResponse;
             }
             
@@ -86,7 +87,7 @@ namespace TraineeManagementApi.Services
                 }
             };
             
-            _logger.LogInformation("Login successful for user {username}",user.Username);
+            _logger.LogInformation("Authenticate:Login : Login successful for user {username}",user.Username);
             return authResponse;
         }
     }

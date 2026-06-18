@@ -13,6 +13,8 @@ namespace TraineeManagementApi.Services
         
         public async Task<List<LearningTaskResponse>> GetAllAsync(string? search)
         {
+            _logger.LogInformation("GetAllAsnc:LearningTask Entering the Function");
+
             IQueryable<LearningTask> query = _dbContext.LearningTasks.AsQueryable();
             if(!string.IsNullOrEmpty(search))
                 query = query.Where( l =>  
@@ -22,25 +24,29 @@ namespace TraineeManagementApi.Services
                 );
         
             List<LearningTask> learningTasks = await query.ToListAsync();
-            _logger.LogInformation("GetAllAsnc Successfully returned Learning Tasks");
+            _logger.LogInformation("GetAllAsnc:LearningTask Successfully returned Learning Tasks");
             return learningTasks.Select(MapToResponse).ToList();
         }
 
         public async Task<LearningTaskResponse?> GetByIdAsync(int id)
         {
+            _logger.LogInformation("GetByIdAsnc:LearningTask : Entering the Function");
+
             LearningTask? learningTask = await _dbContext.LearningTasks.FindAsync(id);
             if (learningTask is null)
             {
-                _logger.LogWarning("GetByID : Learning Task Not found with {id}", id);
+                _logger.LogWarning("GetByIdAsnc:LearningTask : Learning Task Not found with {id}", id);
                 throw new NotFoundException("Learning Task",id);
             }
 
-            _logger.LogInformation("GetByID : Learning Task found with {id}", id);
+            _logger.LogInformation("GetByIdAsnc:LearningTask : Learning Task found with {id}", id);
             return MapToResponse(learningTask);
         }
 
         public async Task<LearningTaskResponse> CreateAsync(LearningTaskRequest learningTaskRequest)
         {
+            _logger.LogInformation("CreateAsync:LearningTask Entering the Function");
+
             LearningTask learningTask = new()
             {
                 Title = learningTaskRequest.Title,
@@ -55,16 +61,18 @@ namespace TraineeManagementApi.Services
             _dbContext.LearningTasks.Add(learningTask);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Create : New Learning Task created with id {id} at {DateTime}",learningTask.Id, learningTask.CreatedDate);
+            _logger.LogInformation("CreateAsync:LearningTask : New Learning Task created with id {id} at {DateTime}",learningTask.Id, learningTask.CreatedDate);
             return MapToResponse(learningTask);
         }
 
         public async Task<LearningTaskResponse?> UpdateAsync(int id, UpdateLearningTaskRequest updateLearningTaskRequest)
         {
+            _logger.LogInformation("UpdateAsync:LearningTask : Entering the Function");
+
             LearningTask? learningTask = await _dbContext.LearningTasks.FindAsync(id);
             if(learningTask is null)
             {
-              _logger.LogError("Update : Learning Task with id {id} Could not be found for updation",id);
+              _logger.LogError("UpdateAsync:LearningTask : Learning Task with id {id} Could not be found for updation",id);
              throw new NotFoundException("Learning Task",id);
             } 
             learningTask.Title = updateLearningTaskRequest.Title;
@@ -76,23 +84,25 @@ namespace TraineeManagementApi.Services
 
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Update : Learning Task with id {id} updated at {DateTime}",learningTask.Id,learningTask.UpdatedDate);
+            _logger.LogInformation("UpdateAsync:LearningTask : Learning Task with id {id} updated at {DateTime}",learningTask.Id,learningTask.UpdatedDate);
             return MapToResponse(learningTask);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
+            _logger.LogInformation("DeleteAsync:LearningTask : Entering the Function");
+
             LearningTask? learningTask = await _dbContext.LearningTasks.FindAsync(id);
             if(learningTask is null)
             {
-                _logger.LogError("Delete : Learning Task with id {id} could not be found for deletion",id);
+                _logger.LogError("DeleteAsync:LearningTask : Learning Task with id {id} could not be found for deletion",id);
                 throw new NotFoundException("Learning Task",id);
             }
                 
             _dbContext.LearningTasks.Remove(learningTask);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Delete : Learning Task with id {id} deleted",id);
+            _logger.LogInformation("DeleteAsync:LearningTask : Learning Task with id {id} deleted",id);
             return true;
         }
 

@@ -13,6 +13,7 @@ namespace TraineeManagementApi.Services
         
         public async Task<List<MentorResponse>> GetAllAsync(string? search)
         {
+            _logger.LogInformation("GetAllAsync:Mentor : Entering the Function");
             IQueryable<Mentor> query = _dbContext.Mentors.AsQueryable();
             if(!string.IsNullOrEmpty(search))
                 query = query.Where( m =>  
@@ -23,24 +24,26 @@ namespace TraineeManagementApi.Services
                 );
         
             List<Mentor> mentors = await query.ToListAsync();
-            _logger.LogInformation("GetAllAsnc Successfully returned mentors");
+            _logger.LogInformation("GetAllAsync:Mentor : Successfully returned mentors");
             return mentors.Select(MapToResponse).ToList();
         }
 
         public async Task<MentorResponse?> GetByIdAsync(int id)
         {
+            _logger.LogInformation("GetByIdAsync:Mentor : Entering the Function");
             Mentor? mentor = await _dbContext.Mentors.FindAsync(id);
             if (mentor is null)
             {
-                _logger.LogError("GetByID : Mentor Not found with {id}", id);
+                _logger.LogError("GetByIdAsync:Mentor : Mentor Not found with {id}", id);
                 throw new NotFoundException("Mentor",id);
             }
-            _logger.LogInformation("GetByID : Mentor found with {id}", id);
+            _logger.LogInformation("GetByIdAsync:Mentor : Mentor found with {id}", id);
             return MapToResponse(mentor);
         }
 
         public async Task<MentorResponse> CreateAsync(MentorRequest mentorRequest)
         {
+            _logger.LogInformation("CreateAsync:Mentor : Entering the Function");
             Mentor mentor = new()
             {
                 FirstName = mentorRequest.FirstName,
@@ -55,16 +58,17 @@ namespace TraineeManagementApi.Services
             _dbContext.Mentors.Add(mentor);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Create : New Mentor created with id {id} at {DateTime}",mentor.Id, mentor.CreatedDate);
+            _logger.LogInformation("CreateAsync:Mentor : New Mentor created with id {id} at {DateTime}",mentor.Id, mentor.CreatedDate);
             return MapToResponse(mentor);
         }
 
         public async Task<MentorResponse?> UpdateAsync(int id, UpdateMentorRequest updateMentoreRequest)
         {
+            _logger.LogInformation("UpdateAsync:Mentor : Entering the Function");
             Mentor? mentor = await _dbContext.Mentors.FindAsync(id);
             if(mentor is null)
             {
-                _logger.LogError("Update : Mentor with id {id} Could not be found for updation",id);
+                _logger.LogError("UpdateAsync:Mentor : Mentor with id {id} Could not be found for updation",id);
                 throw new NotFoundException("Mentor",id);
             } 
             mentor.FirstName = updateMentoreRequest.FirstName;
@@ -76,23 +80,24 @@ namespace TraineeManagementApi.Services
 
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Update : Mentor with id {id} updated at {DateTime}",mentor.Id,mentor.UpdatedDate);
+            _logger.LogInformation("UpdateAsync:Mentor : Mentor with id {id} updated at {DateTime}",mentor.Id,mentor.UpdatedDate);
             return MapToResponse(mentor);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
+            _logger.LogInformation("DeleteAsync:Mentor : Entering the Function");
             Mentor? mentor = await _dbContext.Mentors.FindAsync(id);
             if(mentor is null)
             {
-                _logger.LogError("Delete : Mentor with id {id} could not be found for deletion",id);
+                _logger.LogError("DeleteAsync:Mentor : Mentor with id {id} could not be found for deletion",id);
                 throw new NotFoundException("Mentor",id);
             }
 
             _dbContext.Mentors.Remove(mentor);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Delete : Mentor with id {id} deleted",id);
+            _logger.LogInformation("DeleteAsync:Mentor : Mentor with id {id} deleted",id);
             return true;
         }
 

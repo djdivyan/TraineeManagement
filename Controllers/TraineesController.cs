@@ -15,14 +15,6 @@ public class TraineesController(ITraineeService service) : ControllerBase
 {
     private readonly ITraineeService _service = service;
 
-    // [HttpGet]
-    // public async Task<ActionResult<List<TraineeResponse>>> Get([FromQuery]  string? search)
-    // {
-    //     var result = await _service.GetAllAsync(search);
-
-    
-    //     return Ok(result);
-    // }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<TraineeResponse>> GetById(int id)

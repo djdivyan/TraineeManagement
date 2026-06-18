@@ -15,12 +15,9 @@ Env.Load();
 
 var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 
 builder.Services.AddCors(options =>
 {
@@ -55,12 +52,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 
-//TO use json converter enum to string in all req res
-
-
-
-// builder.Services.AddValidation();
-
 
 
 builder.Services.AddAuthentication(options =>
@@ -85,7 +76,6 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
-// builder.Services.AddSwaggerGen();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -141,24 +131,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-//Exception handling 
-// app.UseExceptionHandler(options =>
-// {
-//     options.Run(async context =>
-//     {
-//        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-//        context.Response.ContentType = "application/json";
-
-//        var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-       
-//        if (exceptionHandlerPathFeature is not null)
-//        {
-//         var error = new {message = "An unexpected error occurred. Please try again later."};
-//         await context.Response.WriteAsJsonAsync(error);
-//        }
-//     });
-// });
-
 
 app.UseHttpsRedirection();
 

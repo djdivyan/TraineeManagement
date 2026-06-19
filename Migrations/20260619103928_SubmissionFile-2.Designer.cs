@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TraineeManagementApi.Models;
 
@@ -11,9 +12,11 @@ using TraineeManagementApi.Models;
 namespace TraineeManagementApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260619103928_SubmissionFile-2")]
+    partial class SubmissionFile2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -181,6 +184,9 @@ namespace TraineeManagementApi.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("GeneratedStorageName")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -195,7 +201,7 @@ namespace TraineeManagementApi.Migrations
                     b.Property<int>("SubmissionId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("Timestamp")
+                    b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("UploadedByUser")

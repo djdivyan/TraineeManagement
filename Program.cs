@@ -10,6 +10,7 @@ using Microsoft.OpenApi;
 using TraineeManagementApi.DTOs;
 using Microsoft.JSInterop.Infrastructure;
 using DotNetEnv;
+using Microsoft.Extensions.FileProviders;
 
 Env.Load();
 
@@ -114,6 +115,10 @@ builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
 builder.Services.AddScoped<ISubmissionService, SubmissionService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
+builder.Services.AddScoped<IFileStorageService, LocalFileManagerService>();
+builder.Services.AddScoped<ISubmissionFileService, SubmissionFileService>();
+
+
 //Exception
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -133,6 +138,13 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 
 app.UseHttpsRedirection();
+
+// app.UseStaticFiles(new StaticFileOptions
+// {
+//     FileProvider = new PhysicalFileProvider(
+//            Path.Combine(builder.Environment.ContentRootPath, "Uploads")),
+//     RequestPath = "/Resources"
+// });
 
 
 app.UseCors(MyAllowSpecificOrigins);

@@ -18,6 +18,7 @@ namespace Models
         public required SubmissionStatus SubmissionStatus { get; set; }
         
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
+        public ICollection<SubmissionFile> SubmissionFiles {get; set;} = new List<SubmissionFile>();
     }
 
     public enum SubmissionStatus

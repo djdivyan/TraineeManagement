@@ -19,7 +19,7 @@ namespace TraineeManagementApi.Models
 
         public DbSet<Review> Reviews { get; set; }
 
-
+        public DbSet<SubmissionFile> SubmissionFiles { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Trainee>()

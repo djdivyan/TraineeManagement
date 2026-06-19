@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using TraineeManagementApi.DTOs;
@@ -6,10 +8,13 @@ using TraineeManagementApi.Models;
 
 namespace TraineeManagementApi.Services
 {
-    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger) : ISubmissionService
+    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment) : ISubmissionService
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<SubmissionService> _logger = logger;
+        private readonly IWebHostEnvironment _env = environment;
+
+         private readonly IFileStorageService _fileManager = fileStorageService;
 
         public async Task<List<SubmissionResponse>> GetAllAsync()
         {
@@ -71,6 +76,76 @@ namespace TraineeManagementApi.Services
                 SubmittedDate = submission.SubmittedDate,
                 SubmissionStatus = submission.SubmissionStatus,
             };
+        }
+
+        public async Task<SubmissionFileResponseDTO> SaveFileAsync(int submissionId,SubmissionFileRequestDTO request)
+        {
+            _logger.LogInformation("SaveFileAsync:Submission : Entering the Function");            
+            if (await _dbContext.Submissions.FindAsync(submissionId) == null)
+            {
+                throw new BadRequestException($"Foreign Key - SubmissionId : {submissionId} Does not Exist");
+            }
+            
+            string originalFileName = request.File.FileName;
+            _logger.LogInformation("SaveFileAsync:Submission : Entering the Storage");            
+            string generatedStorageName = await _fileManager.SaveAsync(request.File);
+            _logger.LogInformation("SaveFileAsync:Submission : Generated StorageName {StorageName} ", generatedStorageName);            
+
+            string contentType = request.File.ContentType;
+            long size = request.File.Length;
+            int uploadedByUser = request.UploadedByUser;
+            int submissionid = submissionId;
+            DateTime Timestamp = DateTime.Now;
+            _logger.LogInformation("SaveFileAsync:Submission : Entering Checksum");            
+            string checksum = GenerateChecksum(generatedStorageName);
+            _logger.LogInformation("SaveFileAsync:Submission :  Checksum {checksum}", checksum);            
+
+            SubmissionFile submissionFile = new SubmissionFile
+            {
+               SubmissionId = submissionid,
+               OriginalFileName = originalFileName,
+               GeneratedStorageName = generatedStorageName,
+               ContentType = contentType,
+               Size = size,
+               Checksum = checksum,
+               UploadedByUser = uploadedByUser,
+               Timestamp = Timestamp
+            };
+
+            _dbContext.SubmissionFiles.Add(submissionFile);
+            await _dbContext.SaveChangesAsync();
+            _logger.LogInformation("SaveFileAsync:Submission : New Submission File Created {submision}",JsonSerializer.Serialize(submissionFile));            
+            return MapToFileMetadata(submissionFile);
+        }
+
+        private SubmissionFileResponseDTO MapToFileMetadata(SubmissionFile request)
+        {
+            return new SubmissionFileResponseDTO
+            {
+                Id = request.Id,
+                SubmissionId = request.SubmissionId,
+                OriginalFileName = request.OriginalFileName,
+                GeneratedStorageName = request.GeneratedStorageName,
+                ContentType = request.ContentType,
+                Size = request.Size,
+                Checksum = request.Checksum,
+                UploadedByUser = request.UploadedByUser,
+                Timestamp = request.Timestamp
+            };
+        }
+
+        private string GenerateChecksum(string filename)
+        {
+            var contentPath = _env.ContentRootPath;
+            var path = Path.Combine(contentPath, $"Uploads", filename);
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                using (var stream = System.IO.File.OpenRead(path))
+                {
+                    var hash = md5.ComputeHash(stream);
+                    return BitConverter.ToString(hash).Replace("-", "");
+                }
+            }
         }
     }
 }

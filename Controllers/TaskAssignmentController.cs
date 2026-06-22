@@ -23,9 +23,9 @@ public class TaskAssignmentController(ITaskAssignmentService service) : Controll
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<TaskAssignmentResponse>> GetById(int id)
+    public async Task<ActionResult<TaskAssignmentResponse>> GetById(int id, CancellationToken cancellationToken)
     {
-        TaskAssignmentResponse taskAssignmentResponse = await _service.GetByIdAsync(id);
+        TaskAssignmentResponse taskAssignmentResponse = await _service.GetByIdAsync(id, cancellationToken);
         return Ok(taskAssignmentResponse);
     }
 
@@ -38,12 +38,12 @@ public class TaskAssignmentController(ITaskAssignmentService service) : Controll
     }
 
     [HttpPut("{id}/status")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateTaskAssignmentRequest updateTaskAssignmentRequest)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateTaskAssignmentRequest updateTaskAssignmentRequest, CancellationToken cancellationToken)
     {
         if (id != updateTaskAssignmentRequest.Id)
             return BadRequest();
 
-        TaskAssignmentResponse result = await _service.UpdateAsync(id,updateTaskAssignmentRequest);
+        TaskAssignmentResponse result = await _service.UpdateAsync(id,updateTaskAssignmentRequest, cancellationToken);
         return Ok(result);
     }
 }

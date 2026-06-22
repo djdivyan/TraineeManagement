@@ -119,6 +119,13 @@ builder.Services.AddScoped<IFileStorageService, LocalFileManagerService>();
 builder.Services.AddScoped<ISubmissionFileService, SubmissionFileService>();
 
 
+//Redis Cache
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "TraineeManagementAPI:";
+});
+
 //Exception
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();

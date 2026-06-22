@@ -17,9 +17,10 @@ public class TraineesController(ITraineeService service) : ControllerBase
 
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<TraineeResponse>> GetById(int id)
+    public async Task<ActionResult<TraineeResponse>> GetById(int id,CancellationToken cancellationToken)
     {
-        TraineeResponse? trainee = await _service.GetByIdAsync(id);
+        
+        TraineeResponse? trainee = await _service.GetByIdAsync(id,cancellationToken);
         return Ok(trainee);
     }
 
@@ -31,19 +32,19 @@ public class TraineesController(ITraineeService service) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateTraineeRequest updateTraineeRequest)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateTraineeRequest updateTraineeRequest,CancellationToken cancellationToken )
     {
         if (id != updateTraineeRequest.Id)
             return BadRequest();
 
-        TraineeResponse result = await _service.UpdateAsync(id,updateTraineeRequest);
+        TraineeResponse result = await _service.UpdateAsync(id,updateTraineeRequest,cancellationToken);
         return Ok(result);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        await _service.DeleteAsync(id);
+        await _service.DeleteAsync(id,cancellationToken);
         return NoContent();
     }
 

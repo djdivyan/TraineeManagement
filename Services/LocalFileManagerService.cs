@@ -82,15 +82,28 @@ namespace TraineeManagementApi.Services
                     throw new FileNotFoundException($"Invalid file path");
                 }
 
-                var provider = new FileExtensionContentTypeProvider();
 
-                if (!provider.TryGetContentType(path,out var contentType))
-                {
-                    contentType = "application/octet-stream";
-                }
+                var stream = new FileStream(
+                    path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    bufferSize: 81920,
+                    useAsync: true // Enables async operations
+                );
 
-                byte[]? bytes = await File.ReadAllBytesAsync(path);
-                return Results.File(bytes,contentType, Path.GetFileName(path));
+                return Results.File(stream, "application/octet-stream", Path.GetFileName(path));
+                
+
+                // var provider = new FileExtensionContentTypeProvider();
+
+                // if (!provider.TryGetContentType(path,out var contentType))
+                // {
+                //     contentType = "application/octet-stream";
+                // }
+
+                // byte[]? bytes = await File.ReadAllBytesAsync(path);
+                // return Results.File(bytes,contentType, Path.GetFileName(path));
         }
 
         public async Task<bool> ExistsAsync(string fileNameWithExtension)

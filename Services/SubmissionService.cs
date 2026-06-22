@@ -1,20 +1,22 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Models;
 using TraineeManagementApi.DTOs;
 using TraineeManagementApi.Exceptions;
 using TraineeManagementApi.Models;
+using TraineeManagementApi.Utilities;
 
 namespace TraineeManagementApi.Services
 {
-    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment) : ISubmissionService
+    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment, IDistributedCache distributedCache) : ISubmissionService
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<SubmissionService> _logger = logger;
         private readonly IWebHostEnvironment _env = environment;
-
-         private readonly IFileStorageService _fileManager = fileStorageService;
+        private readonly IDistributedCache _cache = distributedCache;
+        private readonly IFileStorageService _fileManager = fileStorageService;
 
         public async Task<List<SubmissionResponse>> GetAllAsync()
         {
@@ -146,6 +148,63 @@ namespace TraineeManagementApi.Services
                     return BitConverter.ToString(hash).Replace("-", "");
                 }
             }
+        }
+
+        public async Task<SubmissionSummaryDTO> GetSubmissionSummaryAsync(int id, CancellationToken cancellationToken=default)
+        {
+            _logger.LogInformation("Submission:GetSubmissionSummaryAsync : Entering Function");
+
+            string key = $"submission-summary:{id}";
+            try
+            {
+                var val = await _cache.GetAsync(key,cancellationToken);
+
+                if(val != null)
+                {
+                    _logger.LogInformation("Cache hit for {cacheKey}", key);
+                    SubmissionSummaryDTO? result = JsonSerializer.Deserialize<SubmissionSummaryDTO>(val);
+                    if (result is not null)
+                    {
+                        _logger.LogInformation("Submission:GetSubmissionSummaryAsync Cache : Returning Submission summary for ID {id} From Cache",id);
+                        return result;
+                    }
+                }
+            }
+            catch (System.Exception)
+            {
+                _logger.LogError("Redis is Currently Unavailable serving requests from database");
+            }
+
+
+            _logger.LogInformation("Cache miss for {cacheKey}", key);
+            Submission? submission = await _dbContext.Submissions.FindAsync(id);
+            if (submission is null)
+            {
+                _logger.LogWarning("Submission:GetSubmissionSummaryAsync : Submission Not found with {id}", id);
+                throw new NotFoundException("Submission",id);
+            }
+
+            SubmissionSummaryDTO submissionSummaryDTO = new SubmissionSummaryDTO
+            {
+                TaskAssignmentId = submission.TaskAssignmentId,
+                Notes = submission.Notes,
+                SubmissionStatus = submission.SubmissionStatus,
+                SubmissionUrl = submission.SubmissionUrl,
+                SubmittedDate = submission.SubmittedDate
+            };
+
+            //Setting in Cache
+            try
+            {
+                await _cache.SetAsync(key,submissionSummaryDTO, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Redis is unavailable, Fetching from Database {ex}",ex);
+            }
+
+            _logger.LogInformation("Submission:GetSubmissionSummaryAsync : Returning Submission summary for ID {id}",id);
+            return submissionSummaryDTO;
         }
     }
 }

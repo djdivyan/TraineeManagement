@@ -1,15 +1,22 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Models;
 using TraineeManagementApi.DTOs;
 using TraineeManagementApi.Exceptions;
 using TraineeManagementApi.Models;
+using TraineeManagementApi.Utilities;
 
 namespace TraineeManagementApi.Services
 {
-    class TraineeService(AppDbContext trainees, ILogger<TraineeService> logger) : ITraineeService
+    class TraineeService(AppDbContext trainees, ILogger<TraineeService> logger, IDistributedCache distributedCache) : ITraineeService
     {
         private readonly AppDbContext _traineeContext = trainees;
         private readonly ILogger<TraineeService> _logger = logger;
+
+        private readonly IDistributedCache _cache = distributedCache;
+
+        private const string AllTraineesCacheKey = "trainees";
         
         public async Task<IEnumerable<TraineeResponse>> GetAllAsync(string? search)
         {
@@ -28,16 +35,48 @@ namespace TraineeManagementApi.Services
             return trainees.Select(MapToResponse).ToList();
         }
 
-        public async Task<TraineeResponse> GetByIdAsync(int id)
+        public async Task<TraineeResponse> GetByIdAsync(int id,CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("GetByIdAsync:Trainee : Entering the Function");
+            Trainee? trainee;
+            try
+            {
+                //Caching
+                string cacheKey = $"trainees:{id}";
+                _logger.LogInformation("Fetching data for key: {CacheKey}.", cacheKey);
+                
+                trainee = await _cache.GetOrSetAsync(
+                cacheKey,
+                async () =>
+                {
+                    _logger.LogInformation("Cache miss for key: {CacheKey}. Fetching from database.", cacheKey);
+                    return await _traineeContext.Trainees.AsNoTracking()
+                        .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+                },
+                cancellationToken: cancellationToken,
+                logger: _logger);
 
-            Trainee? trainee = await _traineeContext.Trainees.FindAsync(id);
+
+                if (trainee != null)
+                {
+                    return MapToResponse(trainee);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Redis is unavailable, Fetching from Database {ex}",ex);
+            }
+           
+
+
+            trainee = await _traineeContext.Trainees.FindAsync(id);
+            
             if (trainee is null)
             {
                 _logger.LogWarning("GetByIdAsync:Trainee : Trainee Not found with {id}", id);
                 throw new NotFoundException("Trainee",id);
             }
+
             _logger.LogInformation("GetByIdAsync:Trainee : Trainee found with {id}", id);
             return MapToResponse(trainee);
         }
@@ -64,7 +103,7 @@ namespace TraineeManagementApi.Services
             return MapToResponse(trainee);
         }
 
-        public async Task<TraineeResponse> UpdateAsync(int id, UpdateTraineeRequest updateTraineeRequest)
+        public async Task<TraineeResponse> UpdateAsync(int id, UpdateTraineeRequest updateTraineeRequest, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("UpdateAsync:Trainee : Entering the Function");
 
@@ -83,12 +122,25 @@ namespace TraineeManagementApi.Services
             trainee.UpdatedDate = DateTime.Now;
 
             await _traineeContext.SaveChangesAsync();
+            
+            //SETASYNC cache
+            _logger.LogInformation("UpdateAsync:Trainee : TraineeCache with id {id} updated at {DateTime}",trainee.Id,trainee.UpdatedDate);
+            
+            try
+            {
+                string cacheKey = $"trainees:{id}";
+                await _cache.SetAsync(cacheKey,trainee, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Redis is unavailable, Fetching from Database {ex}",ex);
+            }
 
             _logger.LogInformation("UpdateAsync:Trainee : Trainee with id {id} updated at {DateTime}",trainee.Id,trainee.UpdatedDate);
             return MapToResponse(trainee);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("DeleteAsync:Trainee : Entering the Function");
 
@@ -102,7 +154,21 @@ namespace TraineeManagementApi.Services
                 
             _traineeContext.Trainees.Remove(trainee);
             await _traineeContext.SaveChangesAsync();
+            
+            //Caching
+            try
+            {
+                _logger.LogInformation("DeleteAsync:Trainee : TraineeCache with id {id} deleted",id);
+                string cacheKey = $"trainees:{id}";
+                await _cache.RemoveAsync(cacheKey,cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Redis is unavailable, Fetching from Database {ex}",ex);
+            }
 
+            
+            
             _logger.LogInformation("DeleteAsync:Trainee : Trainee with id {id} deleted",id);
             return true;
         }

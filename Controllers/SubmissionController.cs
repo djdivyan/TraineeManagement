@@ -59,4 +59,11 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
             return BadRequest($"Error: {ex.Message}");
         }
     }
+
+        [HttpGet]
+        [Route("{submissionid}/summary")]
+        public async Task<SubmissionSummaryDTO> GetSubmissionSummary([FromRoute]int submissionid, CancellationToken cancellationToken)
+        {
+            return await _service.GetSubmissionSummaryAsync(submissionid,cancellationToken);
+        }
 }

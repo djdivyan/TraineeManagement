@@ -11,6 +11,7 @@ using TraineeManagementApi.DTOs;
 using Microsoft.JSInterop.Infrastructure;
 using DotNetEnv;
 using Microsoft.Extensions.FileProviders;
+using TraineeManagementApi.Utilities;
 
 Env.Load();
 
@@ -105,6 +106,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+//RabbitMQ settings
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
 
 
 builder.Services.AddScoped<ITraineeService, TraineeService>();
@@ -118,6 +121,8 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileManagerService>();
 builder.Services.AddScoped<ISubmissionFileService, SubmissionFileService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
+
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 
 
 //Redis Cache

@@ -7,16 +7,19 @@ using TraineeManagementApi.DTOs;
 using TraineeManagementApi.Exceptions;
 using TraineeManagementApi.Models;
 using TraineeManagementApi.Utilities;
+using TrianeeManagementApi.DTOs;
 
 namespace TraineeManagementApi.Services
 {
-    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment, ICacheService cacheService) : ISubmissionService
+    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment, ICacheService cacheService, IRabbitMqPublisher rabbitMqPublisher) : ISubmissionService
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<SubmissionService> _logger = logger;
         private readonly IWebHostEnvironment _env = environment;
         private readonly ICacheService _cache = cacheService;
         private readonly IFileStorageService _fileManager = fileStorageService;
+        private readonly IRabbitMqPublisher _publisher = rabbitMqPublisher;
+        private const string QueName = "submission-processing";
 
         public async Task<List<SubmissionResponse>> GetAllAsync()
         {
@@ -89,6 +92,7 @@ namespace TraineeManagementApi.Services
             }
             
             string originalFileName = request.File.FileName;
+            //Saving File in Storage
             _logger.LogInformation("SaveFileAsync:Submission : Entering the Storage");            
             string generatedStorageName = await _fileManager.SaveAsync(request.File);
             _logger.LogInformation("SaveFileAsync:Submission : Generated StorageName {StorageName} ", generatedStorageName);            
@@ -116,6 +120,18 @@ namespace TraineeManagementApi.Services
 
             _dbContext.SubmissionFiles.Add(submissionFile);
             await _dbContext.SaveChangesAsync();
+            
+            _logger.LogInformation("SaveFileAsync:Submission : Publishing Message to RabbitQueue");
+            SubmissionProcessingRequested message = new()
+            {
+                SubmissionId = submissionFile.SubmissionId,
+                CorrelationId = Guid.NewGuid(),
+                FileId = submissionFile.Id,
+                MessageId = Guid.NewGuid(),
+                RequestedAt = DateTime.UtcNow
+            };
+            await _publisher.PublishAsync(QueName, message);
+
             _logger.LogInformation("SaveFileAsync:Submission : New Submission File Created {submision}",JsonSerializer.Serialize(submissionFile));            
             return MapToFileMetadata(submissionFile);
         }

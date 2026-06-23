@@ -51,7 +51,7 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
             return BadRequest("No file uploaded.");
         try
         {  
-            var savedFilePath = await _service.SaveFileAsync(submissionid,request);
+            SubmissionFileResponseDTO? savedFilePath = await _service.SaveFileAsync(submissionid,request);
             return Ok(new { Message = "File uploaded successfully.", FilePath = savedFilePath });
         }
         catch (Exception ex)

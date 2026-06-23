@@ -8,12 +8,11 @@ using TraineeManagementApi.Utilities;
 
 namespace TraineeManagementApi.Services
 {
-    class TaskAssignmentService(AppDbContext dbContext, ILogger<TaskAssignmentService> logger, IDistributedCache distributedCache) : ITaskAssignmentService
+    class TaskAssignmentService(AppDbContext dbContext, ILogger<TaskAssignmentService> logger, ICacheService cacheService) : ITaskAssignmentService
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<TaskAssignmentService> _logger = logger;
-        private readonly IDistributedCache _cache = distributedCache;
-        private const string AllTaskAssignmentCacheKey = "task_assignment";
+        private readonly ICacheService _cache = cacheService;
 
         public async Task<List<TaskAssignmentResponse>> GetAllAsync()
         {
@@ -32,14 +31,12 @@ namespace TraineeManagementApi.Services
         {
             _logger.LogInformation("GetByIdAsync:TaskAssignment : Entering the Function");
 
-            TaskAssignment? taskAssignment;
+            
             //cache
-            try
-            {
-                string cacheKey = $"task_assignment:{id}";
-                _logger.LogInformation("Fetching data for key: {CacheKey}.", cacheKey);
-                
-                taskAssignment = await _cache.GetOrSetAsync(
+            string cacheKey = CacheKeys.TaskAssignment(id);
+            _logger.LogInformation("Fetching data for key: {CacheKey}.", cacheKey);
+            
+            TaskAssignment? taskAssignment = await _cache.GetOrSetAsync(
                 cacheKey,
                 async () =>
                 {
@@ -47,21 +44,9 @@ namespace TraineeManagementApi.Services
                     return await _dbContext.TaskAssignments.AsNoTracking()
                         .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
                 },
-                cancellationToken: cancellationToken,
-                logger: _logger);
-
-                if (taskAssignment != null)
-                {
-                    return MapToResponse(taskAssignment);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Redis is unavailable, Fetching from Database {ex}",ex);
-            }
+                cancellationToken: cancellationToken
+            );
             
-            taskAssignment = await _dbContext.TaskAssignments.FindAsync(id);
-
             if (taskAssignment is null)
             {
                 _logger.LogError("GetByIdAsync:TaskAssignment : Task Assignments Not found with {id}", id);
@@ -121,18 +106,9 @@ namespace TraineeManagementApi.Services
 
 
             //Cache
-            try
-            {
-                _logger.LogInformation("UpdateAsync:TaskAssignment : Task Assignment Cache with id {id} updated with status {status}", taskAssignment.Id, taskAssignment.TaskAssignmentStatus);
-                string cacheKey = $"task_assignment:{id}";
-                await _cache.SetAsync(cacheKey,taskAssignment ,cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Redis is unavailable, Fetching from Database {ex}",ex);
-            }
-
-           
+            _logger.LogInformation("UpdateAsync:TaskAssignment : Task Assignment Cache with id {id} updated with status {status}", taskAssignment.Id, taskAssignment.TaskAssignmentStatus);
+            string cacheKey = CacheKeys.TaskAssignment(id);
+            await _cache.SetAsync(cacheKey,taskAssignment ,cancellationToken);
 
             _logger.LogInformation("UpdateAsync:TaskAssignment : Task Assignment with id {id} updated with status {status}", taskAssignment.Id, taskAssignment.TaskAssignmentStatus);
             return MapToResponse(taskAssignment);

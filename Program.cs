@@ -117,6 +117,7 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 
 builder.Services.AddScoped<IFileStorageService, LocalFileManagerService>();
 builder.Services.AddScoped<ISubmissionFileService, SubmissionFileService>();
+builder.Services.AddScoped<ICacheService, CacheService>();
 
 
 //Redis Cache

@@ -35,7 +35,7 @@ namespace TraineeManagementApi.Utilities
             DistributedCacheEntryOptions options,
             CancellationToken cancellationToken = default)
         {
-            var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(value, SerializerOptions));
+            byte[] bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(value, SerializerOptions));
             return cache.SetAsync(key, bytes, options, cancellationToken);
         }
 
@@ -46,7 +46,7 @@ namespace TraineeManagementApi.Utilities
             string key,
             out T? value)
         {
-            var val = cache.Get(key);
+            byte[]? val = cache.Get(key);
             value = default;
             if (val is null) return false;
             value = JsonSerializer.Deserialize<T>(val, SerializerOptions);
@@ -61,7 +61,7 @@ namespace TraineeManagementApi.Utilities
             CancellationToken cancellationToken = default,
             ILogger? logger = null)
         {
-            var safeLogger = logger ?? NullLogger.Instance;
+            ILogger safeLogger = logger ?? NullLogger.Instance;
             if (cache.TryGetValue(key, out T? value) && value is not null)
             {
                 safeLogger.LogInformation("Cache hit for {cacheKey}", key);
@@ -79,7 +79,7 @@ namespace TraineeManagementApi.Utilities
 
                 await cache.SetAsync(key, value, options, cancellationToken);
             }
-
+            
             return value;
         }
 

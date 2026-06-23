@@ -14,11 +14,11 @@ public sealed class GlobalExceptionHandler(
         logger.LogError(exception, "Unhandled exception occurred. TraceId: {TraceId}",
             httpContext.TraceIdentifier);
 
-        var (statusCode, title) = MapException(exception);
+        (int statusCode, string title) = MapException(exception);
 
         httpContext.Response.StatusCode = statusCode;
 
-        var problemDetails = new ProblemDetails
+        ProblemDetails problemDetails = new ProblemDetails
         {
             Status = statusCode,
             Title = title,
@@ -36,7 +36,7 @@ public sealed class GlobalExceptionHandler(
         problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
         problemDetails.Extensions["timestamp"] = DateTime.UtcNow;
 
-         var isHandled = await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+        bool isHandled = await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,
             ProblemDetails = problemDetails
@@ -72,7 +72,7 @@ public sealed class GlobalExceptionHandler(
 
     private static string? GetSafeErrorMessage(Exception exception, HttpContext context)
     {
-        var env = context.RequestServices.GetRequiredService<IHostEnvironment>();
+        IHostEnvironment env = context.RequestServices.GetRequiredService<IHostEnvironment>();
         if (env.IsDevelopment())
         {
             return exception.Message;

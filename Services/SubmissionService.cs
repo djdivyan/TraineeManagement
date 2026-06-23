@@ -10,12 +10,12 @@ using TraineeManagementApi.Utilities;
 
 namespace TraineeManagementApi.Services
 {
-    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment, IDistributedCache distributedCache) : ISubmissionService
+    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment, ICacheService cacheService) : ISubmissionService
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<SubmissionService> _logger = logger;
         private readonly IWebHostEnvironment _env = environment;
-        private readonly IDistributedCache _cache = distributedCache;
+        private readonly ICacheService _cache = cacheService;
         private readonly IFileStorageService _fileManager = fileStorageService;
 
         public async Task<List<SubmissionResponse>> GetAllAsync()
@@ -138,13 +138,13 @@ namespace TraineeManagementApi.Services
 
         private string GenerateChecksum(string filename)
         {
-            var contentPath = _env.ContentRootPath;
-            var path = Path.Combine(contentPath, $"Uploads", filename);
-            using (var md5 = System.Security.Cryptography.MD5.Create())
+            string contentPath = _env.ContentRootPath;
+            string path = Path.Combine(contentPath, $"Uploads", filename);
+            using (MD5 md5 = System.Security.Cryptography.MD5.Create())
             {
-                using (var stream = System.IO.File.OpenRead(path))
+                using (FileStream stream = System.IO.File.OpenRead(path))
                 {
-                    var hash = md5.ComputeHash(stream);
+                    byte[] hash = md5.ComputeHash(stream);
                     return BitConverter.ToString(hash).Replace("-", "");
                 }
             }
@@ -154,57 +154,41 @@ namespace TraineeManagementApi.Services
         {
             _logger.LogInformation("Submission:GetSubmissionSummaryAsync : Entering Function");
 
-            string key = $"submission-summary:{id}";
-            try
-            {
-                var val = await _cache.GetAsync(key,cancellationToken);
-
-                if(val != null)
+            string cacheKey = CacheKeys.SubmissionSummary(id);
+            SubmissionSummaryDTO? submissionSummary = await _cache.GetOrSetAsync
+            (
+                cacheKey,
+                async() =>
                 {
-                    _logger.LogInformation("Cache hit for {cacheKey}", key);
-                    SubmissionSummaryDTO? result = JsonSerializer.Deserialize<SubmissionSummaryDTO>(val);
-                    if (result is not null)
+                    _logger.LogInformation("Cache miss for {cacheKey}", cacheKey);
+                    Submission? submission = await _dbContext.Submissions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id,cancellationToken);
+                    if (submission is null)
                     {
-                        _logger.LogInformation("Submission:GetSubmissionSummaryAsync Cache : Returning Submission summary for ID {id} From Cache",id);
-                        return result;
+                        _logger.LogWarning("Submission:GetSubmissionSummaryAsync : Submission Not found with {id}", id);
+                        throw new NotFoundException("Submission",id);
                     }
-                }
-            }
-            catch (System.Exception)
-            {
-                _logger.LogError("Redis is Currently Unavailable serving requests from database");
-            }
+
+                    return new SubmissionSummaryDTO
+                    {
+                        TaskAssignmentId = submission.TaskAssignmentId,
+                        Notes = submission.Notes,
+                        SubmissionStatus = submission.SubmissionStatus,
+                        SubmissionUrl = submission.SubmissionUrl,
+                        SubmittedDate = submission.SubmittedDate
+                    };
+                },
+                cancellationToken
+            );
 
 
-            _logger.LogInformation("Cache miss for {cacheKey}", key);
-            Submission? submission = await _dbContext.Submissions.FindAsync(id);
-            if (submission is null)
-            {
-                _logger.LogWarning("Submission:GetSubmissionSummaryAsync : Submission Not found with {id}", id);
-                throw new NotFoundException("Submission",id);
-            }
 
-            SubmissionSummaryDTO submissionSummaryDTO = new SubmissionSummaryDTO
+            if(submissionSummary is null)
             {
-                TaskAssignmentId = submission.TaskAssignmentId,
-                Notes = submission.Notes,
-                SubmissionStatus = submission.SubmissionStatus,
-                SubmissionUrl = submission.SubmissionUrl,
-                SubmittedDate = submission.SubmittedDate
-            };
-
-            //Setting in Cache
-            try
-            {
-                await _cache.SetAsync(key,submissionSummaryDTO, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Redis is unavailable, Fetching from Database {ex}",ex);
+                throw new NotFoundException("SubmissionSummary",id);
             }
 
             _logger.LogInformation("Submission:GetSubmissionSummaryAsync : Returning Submission summary for ID {id}",id);
-            return submissionSummaryDTO;
+            return submissionSummary;
         }
     }
 }

@@ -20,8 +20,8 @@ namespace TraineeManagementApi.Services
                 if (file.Length > _maxFileSize)
                     throw new InvalidDataException($"File exceeds maximum size of {_maxFileSize / (1024 * 1024)} MB.");
 
-                var contentPath = _env.ContentRootPath;
-                var path = Path.Combine(contentPath, "Uploads");
+                string contentPath = _env.ContentRootPath;
+                string path = Path.Combine(contentPath, "Uploads");
                 // path = "c://projects/ImageManipulation.Ap/uploads" ,not exactly, but something like that
 
                 if (!Directory.Exists(path))
@@ -30,17 +30,17 @@ namespace TraineeManagementApi.Services
                 }
 
                 // Check the allowed extenstions
-                var extension = Path.GetExtension(file.FileName);
+                string extension = Path.GetExtension(file.FileName);
                 if (!allowedFileExtensions.Contains(extension))
                 {
                     throw new InvalidDataException($"Unsupported file extension: {extension}. Allowed: {string.Join(", ", allowedFileExtensions)}.");
                 }
 
                 // Generate a unique filename to avoid overwrites
-                var fileName = $"{Guid.NewGuid()}{extension}";
-                var fileNameWithPath = Path.Combine(path, fileName);
+                string fileName = $"{Guid.NewGuid()}{extension}";
+                string fileNameWithPath = Path.Combine(path, fileName);
 
-                using (var stream = new FileStream(fileNameWithPath, FileMode.Create))
+                using (FileStream stream = new FileStream(fileNameWithPath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
@@ -55,8 +55,8 @@ namespace TraineeManagementApi.Services
                     throw new ArgumentNullException(nameof(fileNameWithExtension));
                 }
 
-                var contentPath = _env.ContentRootPath;
-                var path = Path.Combine(contentPath, $"Uploads", fileNameWithExtension);
+                string contentPath = _env.ContentRootPath;
+                string path = Path.Combine(contentPath, $"Uploads", fileNameWithExtension);
 
                 if (!File.Exists(path))
                 {
@@ -74,8 +74,8 @@ namespace TraineeManagementApi.Services
                     throw new ArgumentNullException(nameof(fileNameWithExtension));
                 }
 
-                var contentPath = _env.ContentRootPath;
-                var path = Path.Combine(contentPath, $"Uploads", fileNameWithExtension);
+                string contentPath = _env.ContentRootPath;
+                string path = Path.Combine(contentPath, $"Uploads", fileNameWithExtension);
 
                 if (!File.Exists(path))
                 {
@@ -83,7 +83,7 @@ namespace TraineeManagementApi.Services
                 }
 
 
-                var stream = new FileStream(
+                FileStream stream = new FileStream(
                     path,
                     FileMode.Open,
                     FileAccess.Read,
@@ -93,17 +93,6 @@ namespace TraineeManagementApi.Services
                 );
 
                 return Results.File(stream, "application/octet-stream", Path.GetFileName(path));
-                
-
-                // var provider = new FileExtensionContentTypeProvider();
-
-                // if (!provider.TryGetContentType(path,out var contentType))
-                // {
-                //     contentType = "application/octet-stream";
-                // }
-
-                // byte[]? bytes = await File.ReadAllBytesAsync(path);
-                // return Results.File(bytes,contentType, Path.GetFileName(path));
         }
 
         public async Task<bool> ExistsAsync(string fileNameWithExtension)
@@ -113,8 +102,8 @@ namespace TraineeManagementApi.Services
                 throw new ArgumentNullException(nameof(fileNameWithExtension));
             }
 
-            var contentPath = _env.ContentRootPath;
-            var path = Path.Combine(contentPath, $"Uploads", fileNameWithExtension);
+            string contentPath = _env.ContentRootPath;
+            string path = Path.Combine(contentPath, $"Uploads", fileNameWithExtension);
             return await Task.FromResult(File.Exists(path));
         }
     }

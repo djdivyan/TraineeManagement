@@ -29,7 +29,7 @@ namespace TraineeManagementApi.Services
             }
         }
 
-        public async Task PublishAsync(string queueName, SubmissionProcessingRequested message)
+        public async Task PublishAsync(string queueName, SubmissionProcessingRequested message, CancellationToken cancellationToken = default)
         {
             //Exchange name Keeping as QueName only 
             string exchangeName = queueName;
@@ -37,15 +37,16 @@ namespace TraineeManagementApi.Services
 
             if (_channel == null) throw new InvalidOperationException("Channel is not initialized.");
 
-            await _channel.ExchangeDeclareAsync(exchangeName, ExchangeType.Direct, durable: true, autoDelete: false);
+            await _channel.ExchangeDeclareAsync(exchangeName, ExchangeType.Direct, durable: true, autoDelete: false, cancellationToken: cancellationToken);
             await _channel.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null
+                arguments: null,
+                cancellationToken: cancellationToken
             );
-            await _channel.QueueBindAsync(queueName, exchangeName, routingKey: queueName, null);
+            await _channel.QueueBindAsync(queueName, exchangeName, routingKey: queueName, null, cancellationToken: cancellationToken);
 
 
             
@@ -69,7 +70,8 @@ namespace TraineeManagementApi.Services
                 routingKey: queueName,
                 mandatory: true,
                 basicProperties: properties,
-                body: body
+                body: body,
+                cancellationToken: cancellationToken
             );
         }
 

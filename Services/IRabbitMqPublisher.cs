@@ -7,6 +7,6 @@ namespace TraineeManagementApi.Services
 {
     public interface IRabbitMqPublisher
     {
-        Task PublishAsync(string queueName, SubmissionProcessingRequested message);
+        Task PublishAsync(string queueName, SubmissionProcessingRequested message, CancellationToken cancellationToken = default);
     }
 }

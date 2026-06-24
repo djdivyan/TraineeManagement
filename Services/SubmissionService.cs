@@ -83,7 +83,7 @@ namespace TraineeManagementApi.Services
             };
         }
 
-        public async Task<SubmissionFileResponseDTO> SaveFileAsync(int submissionId,SubmissionFileRequestDTO request)
+        public async Task<SubmissionFileResponseDTO> SaveFileAsync(int submissionId,SubmissionFileRequestDTO request, CancellationToken cancellationToken)
         {
             _logger.LogInformation("SaveFileAsync:Submission : Entering the Function");            
             if (await _dbContext.Submissions.FindAsync(submissionId) == null)
@@ -121,25 +121,28 @@ namespace TraineeManagementApi.Services
             _dbContext.SubmissionFiles.Add(submissionFile);
             await _dbContext.SaveChangesAsync();
             
+
+            //For Publishing message to the queue
             _logger.LogInformation("SaveFileAsync:Submission : Publishing Message to RabbitQueue");
             SubmissionProcessingRequested message = new()
             {
+                MessageId = Guid.NewGuid(),
                 SubmissionId = submissionFile.SubmissionId,
                 CorrelationId = Guid.NewGuid(),
                 FileId = submissionFile.Id,
-                MessageId = Guid.NewGuid(),
                 RequestedAt = DateTime.UtcNow
             };
-            await _publisher.PublishAsync(QueName, message);
+            await _publisher.PublishAsync(QueName, message, cancellationToken);
 
             _logger.LogInformation("SaveFileAsync:Submission : New Submission File Created {submision}",JsonSerializer.Serialize(submissionFile));            
-            return MapToFileMetadata(submissionFile);
+            return MapToFileMetadata(submissionFile,message.MessageId);
         }
 
-        private SubmissionFileResponseDTO MapToFileMetadata(SubmissionFile request)
+        private SubmissionFileResponseDTO MapToFileMetadata(SubmissionFile request,Guid messageId)
         {
             return new SubmissionFileResponseDTO
             {
+                TrackingIdentifier = messageId,
                 Id = request.Id,
                 SubmissionId = request.SubmissionId,
                 OriginalFileName = request.OriginalFileName,

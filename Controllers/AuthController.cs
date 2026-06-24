@@ -32,6 +32,8 @@ public class AuthController(ILoginService service,ILogger<AuthController> logger
         //Generates final response with JWT token
         AuthResponse<LoginResponse?> response = await _service.Authenticate(loginRequest);
 
+        // Response.Headers.Append("Authorization Bearer", response.LoginResponse.Token);
+        
         return Ok(response);
     }
 

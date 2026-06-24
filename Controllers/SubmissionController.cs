@@ -41,18 +41,18 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
 
     [HttpPost]
     [Route("{submissionid}/files")]
-    public async Task<IActionResult> UploadFile([FromRoute]int submissionid, [FromForm]SubmissionFileRequestDTO request)
+    public async Task<IActionResult> UploadFile([FromRoute]int submissionid, [FromForm]SubmissionFileRequestDTO request, CancellationToken cancellationToken)
     {
         if (submissionid != request.SubmissionId)
         {
             return BadRequest("Submission ID mismatch");
-        }
+        }  
         if (request.File == null || request.File.Length == 0 )
             return BadRequest("No file uploaded.");
         try
         {  
-            SubmissionFileResponseDTO? savedFilePath = await _service.SaveFileAsync(submissionid,request);
-            return Ok(new { Message = "File uploaded successfully.", FilePath = savedFilePath });
+            SubmissionFileResponseDTO? FileMetaData = await _service.SaveFileAsync(submissionid,request,cancellationToken);
+            return Accepted(new { Message = "File uploaded successfully. Tracking Id for Async work is generated. ", TrackingIdentifier = FileMetaData.TrackingIdentifier , FileMetaData });
         }
         catch (Exception ex)
         {

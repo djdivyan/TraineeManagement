@@ -8,6 +8,7 @@ namespace TraineeManagementApi.DTOs
     public class SubmissionFileResponseDTO
     {
         public int Id { get; set; }
+        public Guid TrackingIdentifier { get; set; }
         public int SubmissionId { get; set; }
         public required string  OriginalFileName { get; set; }
         public required string  GeneratedStorageName { get; set; }

@@ -144,7 +144,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
     app.UseSwagger(); // Serves the Swagger JSON
-    app.UseSwaggerUI(); // Serves Swagger UI
+    app.UseSwaggerUI(options =>
+    {
+        options.EnablePersistAuthorization();
+    }); // Serves Swagger UI
 }
 
 app.UseExceptionHandler();

@@ -9,7 +9,7 @@ namespace TraineeManagementApi.Services
         Task<List<SubmissionResponse>> GetAllAsync();
         Task<SubmissionResponse> GetByIdAsync(int id);        
         Task<SubmissionResponse> CreateAsync(SubmissionRequest request);
-        Task<SubmissionFileResponseDTO> SaveFileAsync(int submissionId,SubmissionFileRequestDTO request);
+        Task<SubmissionFileResponseDTO> SaveFileAsync(int submissionId,SubmissionFileRequestDTO request, CancellationToken cancellationToken);
         Task<SubmissionSummaryDTO> GetSubmissionSummaryAsync(int submissionid, CancellationToken cancellationToken);
 
         // Task<TaskAssignmentResponse?> UpdateAsync(int id, UpdateTaskAssignmentRequest request);

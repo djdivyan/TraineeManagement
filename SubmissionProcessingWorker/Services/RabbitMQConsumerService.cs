@@ -238,7 +238,7 @@ public class RabbitMQConsumerService : BackgroundService
         await Task.Delay(Timeout.Infinite, stoppingToken);  
     }  
  
-    // Example message processing logic  
+ 
     private async Task<SubmissionProcessingRequested> ProcessMessageAsync(string message)  
     {
         SubmissionProcessingRequested? payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception("Payload could not be Desialized to SubmissionProcessingRequested");
@@ -247,15 +247,10 @@ public class RabbitMQConsumerService : BackgroundService
 
         //CALCULATING CHECKSUM
         // pay has submissionID then submissionID has checkSum
-        // Read the file via openReadAsync
-        
-        //
         using IServiceScope scope = _serviceScopeFactory.CreateScope();
         AppDbContext _dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         //File has checkSum value and generatedStorageName
         SubmissionFile? file = await _dbContext.SubmissionFiles.FirstOrDefaultAsync(f => f.Id == payload.FileId) ?? throw new Exception("Submission File data not found");
-        
-
         
         //loading file and then checking checksum
         string path = Path.Combine("../TraineeManagementApi/Uploads",file.GeneratedStorageName);
@@ -275,8 +270,6 @@ public class RabbitMQConsumerService : BackgroundService
 
         //EXTRACTING SAFE METADDATA
         _logger.LogInformation("File MetaData is : Name : {name} , Length: {length}, Extension: {type}", Path.GetFileName(fileStream.Name), fileStream.Length,Path.GetExtension(fileStream.Name));
-
-
 
         //Testing for DLQ
         // throw new Exception("Something Happened");

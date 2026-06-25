@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using Models;
-using TraineeManagementApi.Models;
+using TraineeManagement.Shared.Models;
 
 namespace TraineeManagementApi.DTOs
 {

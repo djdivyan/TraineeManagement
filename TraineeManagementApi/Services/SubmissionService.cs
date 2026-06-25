@@ -5,9 +5,9 @@ using Microsoft.Extensions.Caching.Distributed;
 using Models;
 using TraineeManagementApi.DTOs;
 using TraineeManagementApi.Exceptions;
-using TraineeManagementApi.Models;
+using TraineeManagement.Shared.Models;
 using TraineeManagementApi.Utilities;
-using TraineeManagementApi.Contracts;
+using TraineeManagement.Shared.Contracts;
 
 namespace TraineeManagementApi.Services
 {

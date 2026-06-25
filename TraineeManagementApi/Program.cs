@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using TraineeManagementApi.Services;
 using Microsoft.EntityFrameworkCore;
-using TraineeManagementApi.Models;
+using TraineeManagement.Shared.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;

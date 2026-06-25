@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TraineeManagementApi.DTOs;
-using TraineeManagementApi.Models;
+using TraineeManagement.Shared.Models;
 
 namespace TraineeManagementApi.Services
 {

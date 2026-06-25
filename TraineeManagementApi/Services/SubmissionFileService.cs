@@ -1,6 +1,6 @@
 using Models;
 using TraineeManagementApi.Exceptions;
-using TraineeManagementApi.Models;
+using TraineeManagement.Shared.Models;
 
 namespace TraineeManagementApi.Services
 {

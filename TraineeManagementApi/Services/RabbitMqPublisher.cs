@@ -3,7 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using TraineeManagementApi.Utilities;
-using TraineeManagementApi.Contracts;
+using TraineeManagement.Shared.Contracts;
 
 namespace TraineeManagementApi.Services
 {   

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SubmissionProcessingWorker;
 using SubmissionProcessingWorker.Services;
 using SubmissionProcessingWorker.Utilities;
-using TraineeManagementApi.Models;
+using TraineeManagement.Shared.Models;
 
 Env.Load();
 

@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -12,10 +11,8 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
 using SubmissionProcessingWorker.Utilities;
-using TraineeManagementApi.Contracts;
-using TraineeManagementApi.Exceptions;
-using TraineeManagementApi.Models;
-using TraineeManagementApi.Services;
+using TraineeManagement.Shared.Contracts;
+using TraineeManagement.Shared.Models;
 
 namespace SubmissionProcessingWorker.Services;  
  

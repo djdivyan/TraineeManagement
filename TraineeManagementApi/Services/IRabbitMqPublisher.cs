@@ -1,7 +1,7 @@
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
-using TraineeManagementApi.Contracts;
+using TraineeManagement.Shared.Contracts;
 
 namespace TraineeManagementApi.Services
 {

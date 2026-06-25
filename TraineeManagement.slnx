@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SubmissionProcessingWorker/SubmissionProcessingWorker.csproj" />
+  <Project Path="TraineeManagementApi/TraineeManagementApi.csproj" />
+</Solution>

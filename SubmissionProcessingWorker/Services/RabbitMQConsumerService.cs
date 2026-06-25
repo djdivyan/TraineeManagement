@@ -87,8 +87,8 @@ public class RabbitMQConsumerService : BackgroundService
             // Bind queue to exchange with routing key  
             await _channel.QueueBindAsync(  
                 queue: _dlq_queueName,  
-                exchange: _options.ExchangeName,  
-                routingKey: _options.QueueName,
+                exchange: "dlq-submission-processing-exchange",  
+                routingKey: _dlq_queueName,
                 arguments: null,
                 cancellationToken: stoppingToken
             );  
@@ -207,7 +207,7 @@ public class RabbitMQConsumerService : BackgroundService
                             cancellationToken: stoppingToken    
                         );
 
-                        _logger.LogError("NACK SENT {s}",shouldRetry);  
+                        _logger.LogError("NACK SENT with requeue as {s}",shouldRetry);  
 
                     }
                 } else
@@ -219,7 +219,7 @@ public class RabbitMQConsumerService : BackgroundService
                     cancellationToken: stoppingToken    
                     );  
                     
-                    _logger.LogError("NACK SENT {s}",false);  
+                    _logger.LogError("NACK SENT with requeue as {s}",false);  
 
                 }
             }  
@@ -256,43 +256,47 @@ public class RabbitMQConsumerService : BackgroundService
         SubmissionFile? file = await _dbContext.SubmissionFiles.FirstOrDefaultAsync(f => f.Id == payload.FileId) ?? throw new Exception("Submission File data not found");
         
 
-        IFileStorageService service = scope.ServiceProvider.GetRequiredService<IFileStorageService>();
-        //Pass File Name with Extension then call generate checksum
-        FileStream fileStream = await service.OpenReadAsync(file.GeneratedStorageName);
+        
+        //loading file and then checking checksum
+        string path = Path.Combine("../TraineeManagementApi/Uploads",file.GeneratedStorageName);
+        await using FileStream fileStream = File.OpenRead(path);
+        string checksum = GenerateCheckSum(fileStream);
+
         //Checking Checksum
-        if(file.Checksum == GenerateCheckSum(fileStream))
+        if(file.Checksum == checksum)
         {
             _logger.LogInformation("CheckSum Validated");
         }
         else
         {
             _logger.LogError("FileCheckSum Did not match");
-            throw new 
-        }
-
-        using (MD5 md5 = System.Security.Cryptography.MD5.Create())
-        {
-            
-            byte[] hash = md5.ComputeHash(stream);
-            return BitConverter.ToString(hash).Replace("-", "");
-            
+            throw new Exception("Your CheckSum is not Valid");
         }
 
         //EXTRACTING SAFE METADDATA
-        //PRODUCING A GENERATED RESULT FILE 
-        await Task.Delay(3000);    
+        _logger.LogInformation("File MetaData is : Name : {name} , Length: {length}, Extension: {type}", Path.GetFileName(fileStream.Name), fileStream.Length,Path.GetExtension(fileStream.Name));
 
 
 
         //Testing for DLQ
         // throw new Exception("Something Happened");
-        
-        // Simulate work (e.g., save to DB, call API)  
+          
+        await Task.Delay(3000);    
         _logger.LogInformation("Message processed successfully.");  
 
         return payload;
     }
 
+    private string GenerateCheckSum(FileStream fileStream)
+    {
+        using (MD5 md5 = System.Security.Cryptography.MD5.Create())
+        {
+            
+            byte[] hash = md5.ComputeHash(fileStream);
+            return BitConverter.ToString(hash).Replace("-", "");
+            
+        }
+    }
 
     public async Task UpdateStatus( SubmissionProcessingRequested payload,ProcessingJobStatus status, string ErrorMessage = "default", CancellationToken cancellationToken = default)
     {

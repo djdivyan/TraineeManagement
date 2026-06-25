@@ -8,6 +8,7 @@
 # dotenv files
 .env
 docker-compose.yml
+Uploads/
 
 
 # User-specific files

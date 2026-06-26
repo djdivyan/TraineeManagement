@@ -10,7 +10,9 @@ using Models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
+using SubmissionProcessingWorker.DTOs;
 using SubmissionProcessingWorker.Utilities;
+using Superpower.Parsers;
 using TraineeManagement.Shared.Contracts;
 using TraineeManagement.Shared.Models;
 
@@ -24,17 +26,21 @@ public class RabbitMQConsumerService : BackgroundService
     private IChannel? _channel;  
     private string? _queueName;  
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly ITrainingDirectoryClient _httpClient ;
+
 
     private const int MaxRetries = 3;
 
     public RabbitMQConsumerService(  
         ILogger<RabbitMQConsumerService> logger,  
         IOptions<RabbitMqSettings> options,
-        IServiceScopeFactory serviceScopeFactory)  
+        IServiceScopeFactory serviceScopeFactory, 
+        ITrainingDirectoryClient client)  
     {  
         _logger = logger;  
         _options = options.Value;  
         _serviceScopeFactory = serviceScopeFactory;
+        _httpClient = client;
     }  
 
 
@@ -170,7 +176,7 @@ public class RabbitMQConsumerService : BackgroundService
                 
                 payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception("Payload could not be Desialized to SubmissionProcessingRequested");
 
-                await ProcessMessageAsync(message); 
+                await ProcessMessageAsync(message, stoppingToken); 
                 
                 //Updating Status after processingthe job
                 await UpdateStatus(payload,ProcessingJobStatus.Completed); 
@@ -236,7 +242,7 @@ public class RabbitMQConsumerService : BackgroundService
     }  
  
  
-    private async Task<SubmissionProcessingRequested> ProcessMessageAsync(string message)  
+    private async Task<SubmissionProcessingRequested> ProcessMessageAsync(string message, CancellationToken stoppingToken)  
     {
         SubmissionProcessingRequested? payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception("Payload could not be Desialized to SubmissionProcessingRequested");
         _logger.LogInformation("Message processing.");  
@@ -264,9 +270,15 @@ public class RabbitMQConsumerService : BackgroundService
             _logger.LogError("FileCheckSum Did not match");
             throw new Exception("Your CheckSum is not Valid");
         }
-
         //EXTRACTING SAFE METADDATA
         _logger.LogInformation("File MetaData is : Name : {name} , Length: {length}, Extension: {type}", Path.GetFileName(fileStream.Name), fileStream.Length,Path.GetExtension(fileStream.Name));
+
+
+        //Interprocess Communication Demo
+        _logger.LogInformation("Internal Service Calligng via typed Client");
+        Trainee? result = await _httpClient.GetTrainee(new TraineeRequest(){ Id = payload.SubmissionId }, stoppingToken);
+        _logger.LogInformation("Internal Service returned result {result}", JsonSerializer.Serialize(result));
+
 
         //Testing for DLQ
         // throw new Exception("Something Happened");

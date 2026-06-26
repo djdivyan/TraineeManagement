@@ -49,15 +49,9 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
         }  
         if (request.File == null || request.File.Length == 0 )
             return BadRequest("No file uploaded.");
-        try
-        {  
+    
             SubmissionFileResponseDTO? FileMetaData = await _service.SaveFileAsync(submissionid,request,cancellationToken);
             return Accepted(new { Message = "File uploaded successfully. Tracking Id for Async work is generated. ", TrackingIdentifier = FileMetaData.TrackingIdentifier , FileMetaData });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest($"Error: {ex.Message}");
-        }
     }
 
         [HttpGet]

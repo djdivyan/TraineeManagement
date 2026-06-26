@@ -49,12 +49,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Configuration.AddEnvironmentVariables();
 // builder.Services.AddDbContext<AppDbContext>(opt => opt.UseInMemoryDatabase("TraineeList"));
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-// var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
-
-
-
 
 builder.Services.AddAuthentication(options =>
 {

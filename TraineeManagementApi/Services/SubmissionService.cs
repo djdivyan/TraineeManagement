@@ -8,6 +8,10 @@ using TraineeManagementApi.Exceptions;
 using TraineeManagement.Shared.Models;
 using TraineeManagementApi.Utilities;
 using TraineeManagement.Shared.Contracts;
+using Polly.Retry;
+using Polly;
+using RabbitMQ.Client.Exceptions;
+using System.Net.Sockets;
 
 namespace TraineeManagementApi.Services
 {
@@ -20,6 +24,8 @@ namespace TraineeManagementApi.Services
         private readonly IFileStorageService _fileManager = fileStorageService;
         private readonly IRabbitMqPublisher _publisher = rabbitMqPublisher;
         private const string QueName = "submission-processing";
+
+        
 
         public async Task<List<SubmissionResponse>> GetAllAsync()
         {
@@ -127,12 +133,40 @@ namespace TraineeManagementApi.Services
             SubmissionProcessingRequested message = new()
             {
                 MessageId = Guid.NewGuid(),
-                SubmissionId = submissionFile.SubmissionId,
+                SubmissionId = submissionId,
                 CorrelationId = Guid.NewGuid(),
                 FileId = submissionFile.Id,
                 RequestedAt = DateTime.UtcNow
             };
-            await _publisher.PublishAsync(QueName, message, cancellationToken);
+
+            //Retry Policy Implementation for Pubblishing RabbitMQ messages
+            AsyncRetryPolicy _retryPolicy = Policy
+            .Handle<BrokerUnreachableException>()
+            .Or<AlreadyClosedException>()
+            .Or<SocketException>()
+            .Or<IOException>()
+            .WaitAndRetryAsync(
+                retryCount: 3,
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2,retryAttempt)),
+                onRetry: (exception, delay, retryCount, context) =>
+                {
+                    _logger.LogInformation(exception,"RabbitMQ publish failed. Retry {retry}/3 after {delay}", retryCount,delay.TotalSeconds);
+                });
+
+            try
+            {
+                await _retryPolicy.ExecuteAsync(async () =>
+                {
+                    await _publisher.PublishAsync(QueName, message, cancellationToken);
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"RabbitMQ Unavailable failed to publish {submissionId}",submissionId);
+                throw new Exception("Unable to Queue Submission for processing",ex);
+            }
+
+            
             
             //Adding Job to the Queue
             ProcessingJob processingJob = new()
@@ -167,6 +201,7 @@ namespace TraineeManagementApi.Services
                 Timestamp = request.Timestamp
             };
         }
+
 
         private string GenerateChecksum(string filename)
         {

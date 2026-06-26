@@ -12,11 +12,11 @@ namespace TraineeManagementApi.Services
         private readonly IConnectionFactory _factory;
         private IConnection? _connection;
         private IChannel? _channel;
+        private readonly ILogger<RabbitMqPublisher> _logger;
 
-        public RabbitMqPublisher(IOptions<RabbitMqSettings> settings)
+        public RabbitMqPublisher(IOptions<RabbitMqSettings> settings, ILogger<RabbitMqPublisher> logger)
         {
-            // _factory
-            Console.WriteLine(settings.Value.HostName); 
+            _logger =logger;
             _factory = settings.Value.CreateConnectionFactory();
         }
 
@@ -53,9 +53,6 @@ namespace TraineeManagementApi.Services
             );
             await _channel.QueueBindAsync(queueName, exchangeName, routingKey: queueName, null, cancellationToken: cancellationToken);
 
-
-            
-
             BasicProperties properties = new BasicProperties
             {
                 Persistent = true,
@@ -70,14 +67,24 @@ namespace TraineeManagementApi.Services
             string json = JsonSerializer.Serialize(message);
             byte[] body = Encoding.UTF8.GetBytes(json);
 
-            await _channel.BasicPublishAsync(
+            try
+            {
+                await _channel.BasicPublishAsync(
                 exchange: exchangeName,
                 routingKey: queueName,
                 mandatory: true,
                 basicProperties: properties,
                 body: body,
                 cancellationToken: cancellationToken
-            );
+                );
+                _logger.LogInformation("Published Message {messageId}",message.MessageId);
+
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex,"Failed to publish message {messageId}",message.MessageId);
+                throw;
+            }
         }
 
         public async ValueTask DisposeAsync()

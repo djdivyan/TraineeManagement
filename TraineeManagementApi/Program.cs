@@ -15,6 +15,7 @@ using TraineeManagementApi.Utilities;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using RabbitMQ.Client;
+using Microsoft.AspNetCore.Mvc;
 
 Env.Load();
 
@@ -169,7 +170,7 @@ builder.Services.AddHealthChecks()
         timeout: TimeSpan.FromSeconds(5),
         tags: new[] { "ready" , "rabbitmq"})
     .AddUrlGroup(
-        uri: new Uri(builder.Configuration["InternalService:Url"]!),
+        uri: new Uri($"{builder.Configuration["InternalService:Url"]!}/api/health"),
         name: "TraineeDirectory.Api",
         failureStatus: HealthStatus.Unhealthy,
         timeout: TimeSpan.FromSeconds(5),

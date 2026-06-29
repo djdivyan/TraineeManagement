@@ -19,7 +19,7 @@ namespace SubmissionProcessingWorker.Services
                 HttpResponseMessage? response = null;
                 try
                 {
-                    response = await _httpClient.GetAsync($"/trainee/{traineeRequest.SubmissionId}/?correlationId={traineeRequest.CorrelationId}", cancellationToken);
+                    response = await _httpClient.GetAsync($"/api/trainingdirectory/trainee/{traineeRequest.SubmissionId}?correlationId={traineeRequest.CorrelationId}", cancellationToken);
                 }
                 catch (HttpRequestException ex)
                 {
@@ -29,7 +29,7 @@ namespace SubmissionProcessingWorker.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    string errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
                     _logger.LogWarning("correlationId : {correlationId} API returned error status {StatusCode}: {ErrorBody}", traineeRequest.CorrelationId, response.StatusCode, errorBody);
                     
                     throw new HttpRequestException($"Error retrieving trainee. Status: {response.StatusCode}. Details: {errorBody}");

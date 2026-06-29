@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using TraineeManagementApi.Utilities;
 using TraineeManagement.Shared.Contracts;
+using System.Runtime.CompilerServices;
 
 namespace TraineeManagementApi.Services
 {   
@@ -20,12 +21,12 @@ namespace TraineeManagementApi.Services
             _factory = settings.Value.CreateConnectionFactory();
         }
 
-        private async Task InitializeAsync()
+        private async Task InitializeAsync(CancellationToken cancellationToken)
         {
             if (_connection == null)
             {
-                _connection = await _factory.CreateConnectionAsync();
-                _channel = await _connection.CreateChannelAsync();
+                _connection = await _factory.CreateConnectionAsync(cancellationToken);
+                _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
             }
         }
 
@@ -33,7 +34,7 @@ namespace TraineeManagementApi.Services
         {
             //Exchange name Keeping as QueName only 
             string exchangeName = queueName;
-            await InitializeAsync();
+            await InitializeAsync(cancellationToken);
 
             if (_channel == null) throw new InvalidOperationException("Channel is not initialized.");
             Dictionary<string,object?> queueArgs = new Dictionary<string, object?>  
@@ -77,12 +78,12 @@ namespace TraineeManagementApi.Services
                 body: body,
                 cancellationToken: cancellationToken
                 );
-                _logger.LogInformation("Published Message {messageId}",message.MessageId);
+                _logger.LogInformation("correlationId : {correlationID} Published Message {messageId}",message.CorrelationId,message.MessageId);
 
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex,"Failed to publish message {messageId}",message.MessageId);
+                _logger.LogError("correlationId : {correlationID} Failed to publish message {messageId}",message.CorrelationId,message.MessageId);
                 throw;
             }
         }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -7,6 +8,8 @@ using System.Threading.Tasks.Dataflow;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Models;
+using Polly;
+using Polly.Retry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
@@ -57,15 +60,29 @@ public class RabbitMQConsumerService : BackgroundService
  
     private async Task InitializeRabbitMQ(CancellationToken stoppingToken)  
     {  
+            IConnectionFactory factory = _options.CreateConnectionFactory();
+
+            AsyncRetryPolicy connectionRetryPolicy = Policy
+                .Handle<BrokerUnreachableException>()
+                .Or<SocketException>()
+                .WaitAndRetryForeverAsync(
+                    retryAttempt => TimeSpan.FromSeconds(Math.Min(30, Math.Pow(2, retryAttempt))),
+                   (exception, timeSpan) =>
+                    { 
+                        _logger.LogWarning("RabbitMQ offline. Retrying connection in {Delay}s", timeSpan.TotalSeconds);
+                    });
         try  
         {  
-            IConnectionFactory factory = _options.CreateConnectionFactory();
- 
-            if (_connection == null)
+            //Consumer Retry Policy for Connection
+            await connectionRetryPolicy.ExecuteAsync(async () =>
             {
-                _connection = await factory.CreateConnectionAsync(cancellationToken: stoppingToken);  
-                _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);  
-            } 
+                if (_connection == null)
+                {
+                    _connection = await factory.CreateConnectionAsync(cancellationToken: stoppingToken);  
+                    _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);  
+                } 
+            });
+           
             _logger.LogInformation("Connected to RabbitMQ server.");  
  
              if (_channel == null) throw new InvalidOperationException("Channel is not initialized.");
@@ -167,27 +184,26 @@ public class RabbitMQConsumerService : BackgroundService
         {  
             byte[] body = ea.Body.ToArray();  
             string message = Encoding.UTF8.GetString(body);  
- 
-            _logger.LogInformation("Received message: {message}",message);  
+            string CorrelationId = ea.BasicProperties.CorrelationId!;
+            _logger.LogInformation("correlationId : {correlationId} Received message: {message}",CorrelationId,message);  
             
             SubmissionProcessingRequested? payload = null;
             try  
             {  
-                
-                payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception("Payload could not be Desialized to SubmissionProcessingRequested");
+                payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception($"correlationId : {CorrelationId} Payload could not be Desialized to SubmissionProcessingRequested");
 
-                await ProcessMessageAsync(message, stoppingToken); 
+                await ProcessMessageAsync(message, stoppingToken,CorrelationId); 
                 
                 //Updating Status after processingthe job
-                await UpdateStatus(payload,ProcessingJobStatus.Completed); 
+                await UpdateStatus(payload,ProcessingJobStatus.Completed,correlationId:CorrelationId, cancellationToken:stoppingToken); 
  
                 // Ack success
                 await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false, cancellationToken: stoppingToken);  
-                _logger.LogInformation("Message acknowledged.");  
+                _logger.LogInformation("correlationId : {correlationId} Message acknowledged.", CorrelationId);  
             }  
             catch (Exception ex)  
             {  
-                _logger.LogError(ex, "Failed to process message.");  
+                _logger.LogError(ex, "correlationId : {correlationId} Failed to process message.",CorrelationId);  
 
                 if (payload != null)
                 {
@@ -199,8 +215,8 @@ public class RabbitMQConsumerService : BackgroundService
                         bool shouldRetry = job != null && job.Attempts < MaxRetries;
                         if (!shouldRetry)
                         {
-                            _logger.LogError("Setting Status as Failed");  
-                            await UpdateStatus(payload,ProcessingJobStatus.Failed, ex.Message.ToString());
+                            _logger.LogError("correlationId : {correlationId} Setting Status as Failed", CorrelationId);  
+                            await UpdateStatus(payload,ProcessingJobStatus.Failed,correlationId:CorrelationId ,ErrorMessage: ex.Message.ToString());
                         }
                         
                         await _channel.BasicNackAsync(  
@@ -210,7 +226,7 @@ public class RabbitMQConsumerService : BackgroundService
                             cancellationToken: stoppingToken    
                         );
 
-                        _logger.LogError("NACK SENT with requeue as {s}",shouldRetry);  
+                        _logger.LogError("correlationId : {correlationId} NACK SENT with requeue as {s}", CorrelationId ,shouldRetry);  
 
                     }
                 } else
@@ -222,7 +238,7 @@ public class RabbitMQConsumerService : BackgroundService
                     cancellationToken: stoppingToken    
                     );  
                     
-                    _logger.LogError("NACK SENT with requeue as {s}",false);  
+                    _logger.LogError("correlationId : {correlationId} NACK SENT with requeue as {s}",CorrelationId ,false);  
 
                 }
             }  
@@ -242,49 +258,49 @@ public class RabbitMQConsumerService : BackgroundService
     }  
  
  
-    private async Task<SubmissionProcessingRequested> ProcessMessageAsync(string message, CancellationToken stoppingToken)  
+    private async Task<SubmissionProcessingRequested> ProcessMessageAsync(string message, CancellationToken stoppingToken, string correlationId)  
     {
-        SubmissionProcessingRequested? payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception("Payload could not be Desialized to SubmissionProcessingRequested");
-        _logger.LogInformation("Message processing.");  
-        await UpdateStatus(payload,ProcessingJobStatus.Processing);
+        SubmissionProcessingRequested? payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception($"correlationId : {correlationId} Payload could not be Desialized to SubmissionProcessingRequested");
+        _logger.LogInformation("correlationId : {correlationId} Message processing.", correlationId);  
+        await UpdateStatus(payload,ProcessingJobStatus.Processing, correlationId, cancellationToken: stoppingToken);
 
         //CALCULATING CHECKSUM
         // pay has submissionID then submissionID has checkSum
         using IServiceScope scope = _serviceScopeFactory.CreateScope();
         AppDbContext _dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         //File has checkSum value and generatedStorageName
-        SubmissionFile? file = await _dbContext.SubmissionFiles.FirstOrDefaultAsync(f => f.Id == payload.FileId) ?? throw new Exception("Submission File data not found");
+        SubmissionFile? file = await _dbContext.SubmissionFiles.FirstOrDefaultAsync(f => f.Id == payload.FileId, cancellationToken:stoppingToken) ?? throw new Exception("Submission File data not found");
         
         //loading file and then checking checksum
-        string path = Path.Combine("../TraineeManagementApi/Uploads",file.GeneratedStorageName);
+        string path = Path.Combine("/App/Uploads",file.GeneratedStorageName);
         await using FileStream fileStream = File.OpenRead(path);
         string checksum = GenerateCheckSum(fileStream);
 
         //Checking Checksum
         if(file.Checksum == checksum)
         {
-            _logger.LogInformation("CheckSum Validated");
+            _logger.LogInformation("correlationId : {correlationId} File CheckSum Validated", correlationId);
         }
         else
         {
-            _logger.LogError("FileCheckSum Did not match");
+            _logger.LogError("correlationId : {correlationId} FileCheckSum Is Invalid and did not match", correlationId);
             throw new Exception("Your CheckSum is not Valid");
         }
         //EXTRACTING SAFE METADDATA
-        _logger.LogInformation("File MetaData is : Name : {name} , Length: {length}, Extension: {type}", Path.GetFileName(fileStream.Name), fileStream.Length,Path.GetExtension(fileStream.Name));
+        _logger.LogInformation("correlationId : {correlationId} File MetaData is : Name : {name} , Length: {length}, Extension: {type}",correlationId ,Path.GetFileName(fileStream.Name), fileStream.Length,Path.GetExtension(fileStream.Name));
 
 
         //Interprocess Communication Demo
-        _logger.LogInformation("Internal Service Calligng via typed Client");
-        Trainee? result = await _httpClient.GetTrainee(new TraineeRequest(){ Id = payload.SubmissionId }, stoppingToken);
-        _logger.LogInformation("Internal Service returned result {result}", JsonSerializer.Serialize(result));
+        _logger.LogInformation("correlationId : {correlationId} Internal Service Calligng via typed Client", correlationId);
+        Trainee? result = await _httpClient.GetTrainee(new TraineeRequest(){ SubmissionId = payload.SubmissionId , CorrelationId = correlationId}, stoppingToken);
+        _logger.LogInformation("correlationId : {correlationId} Internal Service returned result {result}", correlationId,JsonSerializer.Serialize(result));
 
 
         //Testing for DLQ
         // throw new Exception("Something Happened");
           
         await Task.Delay(3000);    
-        _logger.LogInformation("Message processed successfully.");  
+        _logger.LogInformation("correlationId : {correlationId} Message processed successfully.", correlationId);  
 
         return payload;
     }
@@ -300,11 +316,11 @@ public class RabbitMQConsumerService : BackgroundService
         }
     }
 
-    public async Task UpdateStatus( SubmissionProcessingRequested payload,ProcessingJobStatus status, string ErrorMessage = "default", CancellationToken cancellationToken = default)
+    public async Task UpdateStatus( SubmissionProcessingRequested payload,ProcessingJobStatus status, string correlationId , string ErrorMessage = "default", CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("correlationId: {correlationID} Updating status to {status} ", correlationId, status.ToString());
         using (IServiceScope scope = _serviceScopeFactory.CreateScope())
         {
-            Guid CorrelationId =  payload.CorrelationId;
             AppDbContext _dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             ProcessingJob? job = await _dbContext.ProcessingJobs.FirstOrDefaultAsync(p => p.CorrelationId == payload.CorrelationId) ?? throw new Exception("Processing JOB not found");
@@ -313,7 +329,7 @@ public class RabbitMQConsumerService : BackgroundService
             if (status == ProcessingJobStatus.Processing)
             {
                 if (job.ProcessingJobStatus == ProcessingJobStatus.Completed) {
-                    throw new InvalidOperationException($"Job Process with Correlation Id Already Processed {CorrelationId}");
+                    throw new InvalidOperationException($"correlationId: {correlationId} Job Process with Correlation Id Already Processed ");
                 }
 
                 job.ProcessingJobStatus = status;

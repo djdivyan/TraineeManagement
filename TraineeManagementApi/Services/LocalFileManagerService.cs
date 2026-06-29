@@ -1,13 +1,15 @@
 using System.IO.Pipelines;
+using System.Net.Mime;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Net.Http.Headers;
 
 namespace TraineeManagementApi.Services
 {
-    public class LocalFileManagerService(IWebHostEnvironment environment) : IFileStorageService
+    public class LocalFileManagerService(IWebHostEnvironment environment, ILogger<LocalFileManagerService> logger) : IFileStorageService
     {
         private readonly long _maxFileSize = 5 * 1024 * 1024; // 5 MB
+        private readonly ILogger<LocalFileManagerService> _logger = logger;
         private readonly string[] allowedFileExtensions = { ".jpg", ".jpeg", ".png", ".pdf" };
 
         private readonly IWebHostEnvironment _env = environment;
@@ -22,7 +24,7 @@ namespace TraineeManagementApi.Services
 
                 string contentPath = _env.ContentRootPath;
                 string path = Path.Combine(contentPath, "Uploads");
-                // path = "c://projects/ImageManipulation.Ap/uploads" ,not exactly, but something like that
+                _logger.LogInformation("FileStorage:SaveAsync - File stored at path {path} with root as {root}", path, contentPath);
 
                 if (!Directory.Exists(path))
                 {

@@ -2,7 +2,7 @@ namespace TraineeManagement.Shared.Models
 {
     public class User
     {
-        public int Id { get; set; }
+        public int Id { get; set; } 
         public required string Username { get; set; } = string.Empty;
         public required string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;

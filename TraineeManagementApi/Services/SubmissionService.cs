@@ -129,7 +129,6 @@ namespace TraineeManagementApi.Services
             
 
             //For Publishing message to the queue
-            _logger.LogInformation("SaveFileAsync:Submission : Publishing Message to RabbitQueue");
             SubmissionProcessingRequested message = new()
             {
                 MessageId = Guid.NewGuid(),
@@ -138,35 +137,7 @@ namespace TraineeManagementApi.Services
                 FileId = submissionFile.Id,
                 RequestedAt = DateTime.UtcNow
             };
-
-            //Retry Policy Implementation for Pubblishing RabbitMQ messages
-            AsyncRetryPolicy _retryPolicy = Policy
-            .Handle<BrokerUnreachableException>()
-            .Or<AlreadyClosedException>()
-            .Or<SocketException>()
-            .Or<IOException>()
-            .WaitAndRetryAsync(
-                retryCount: 3,
-                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2,retryAttempt)),
-                onRetry: (exception, delay, retryCount, context) =>
-                {
-                    _logger.LogInformation(exception,"RabbitMQ publish failed. Retry {retry}/3 after {delay}", retryCount,delay.TotalSeconds);
-                });
-
-            try
-            {
-                await _retryPolicy.ExecuteAsync(async () =>
-                {
-                    await _publisher.PublishAsync(QueName, message, cancellationToken);
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,"RabbitMQ Unavailable failed to publish {submissionId}",submissionId);
-                throw new Exception("Unable to Queue Submission for processing",ex);
-            }
-
-            
+            _logger.LogInformation("SaveFileAsync:Submission : Publishing Message to RabbitQueue with correlationId : {correlationID}", message.CorrelationId);
             
             //Adding Job to the Queue
             ProcessingJob processingJob = new()
@@ -181,6 +152,32 @@ namespace TraineeManagementApi.Services
             _dbContext.ProcessingJobs.Add(processingJob);
             await _dbContext.SaveChangesAsync();
             
+            //Retry Policy Implementation for Pubblishing RabbitMQ messages
+            AsyncRetryPolicy _retryPolicy = Policy
+            .Handle<BrokerUnreachableException>()
+            .Or<AlreadyClosedException>()
+            .Or<SocketException>()
+            .Or<IOException>()
+            .WaitAndRetryAsync(
+                retryCount: 3,
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2,retryAttempt)),
+                onRetry: (exception, delay, retryCount, context) =>
+                {
+                    _logger.LogInformation(exception, "correlationId : {correlationID} RabbitMQ publish failed. Retry {retry}/3 after {delay}", message.CorrelationId, retryCount,delay.TotalSeconds);
+                });
+            try
+            {
+                await _retryPolicy.ExecuteAsync(async () =>
+                {
+                    await _publisher.PublishAsync(QueName, message, cancellationToken);
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"correlationId : {correlationID} RabbitMQ Unavailable failed to publish message with submissionID : {submissionId}",message.CorrelationId,submissionId);
+                throw new Exception("Unable to Queue Submission for processing",ex);
+            }
+
             _logger.LogInformation("SaveFileAsync:Submission : New Submission File Created {submision}",JsonSerializer.Serialize(submissionFile));            
             return MapToFileMetadata(submissionFile,message.MessageId);
         }

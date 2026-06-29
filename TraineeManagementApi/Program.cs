@@ -12,6 +12,9 @@ using Microsoft.JSInterop.Infrastructure;
 using DotNetEnv;
 using Microsoft.Extensions.FileProviders;
 using TraineeManagementApi.Utilities;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using RabbitMQ.Client;
 
 Env.Load();
 
@@ -134,7 +137,96 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+
+builder.Services.AddHealthChecks()
+    .AddMySql(
+        connectionString: builder.Configuration.GetConnectionString("DefaultConnection")!,
+        name: "mysql",
+        failureStatus: HealthStatus.Unhealthy,
+        timeout: TimeSpan.FromSeconds(5),
+        tags: new[] { "ready", "mysql" })
+    .AddRedis(
+        redisConnectionString: builder.Configuration.GetConnectionString("Redis")!,
+        name: "redis",
+        failureStatus: HealthStatus.Unhealthy,
+        timeout: TimeSpan.FromSeconds(5),
+        tags: new[] { "ready" , "redis"})
+    .AddRabbitMQ(
+        async sp =>
+        {
+            var factory = new ConnectionFactory
+            {
+               HostName = builder.Configuration["RabbitMq:HostName"]!,
+               UserName = builder.Configuration["RabbitMq:UserName"]!,
+               Password = builder.Configuration["RabbitMq:Password"]!,
+               Port = int.TryParse(builder.Configuration["RabbitMq:Port"], out var port) ? port : 5672,
+               VirtualHost = builder.Configuration["RabbitMq:VirtualHost"]!
+            };
+            return await factory.CreateConnectionAsync();
+        },
+        name: "rabbitmq",
+        failureStatus: HealthStatus.Unhealthy,
+        timeout: TimeSpan.FromSeconds(5),
+        tags: new[] { "ready" , "rabbitmq"})
+    .AddUrlGroup(
+        uri: new Uri(builder.Configuration["InternalService:Url"]!),
+        name: "TraineeDirectory.Api",
+        failureStatus: HealthStatus.Unhealthy,
+        timeout: TimeSpan.FromSeconds(5),
+        tags: new[] { "ready", "TraineeDirectory.Api" });
+
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "live" });
+
+
+
+
 var app = builder.Build();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live"),
+    ResponseWriter = async(context,report) =>
+    {
+        context.Response.ContentType = "application/json";
+
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description
+            })
+        };
+
+        await context.Response.WriteAsJsonAsync(result);
+    }
+});
+
+// Readiness endpoint — checks dependencies
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = async(context,report) =>
+    {
+        context.Response.ContentType = "application/json";
+
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description
+            })
+        };
+
+        await context.Response.WriteAsJsonAsync(result);
+    }
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

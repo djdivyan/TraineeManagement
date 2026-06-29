@@ -9,6 +9,7 @@ using System.Net.Http;
 using SubmissionProcessingWorker.Services;
 using SubmissionProcessingWorker.Utilities;
 using TraineeManagement.Shared.Models;
+using RabbitMQ.Client.Exceptions;
 
 Env.Load();
 
@@ -31,7 +32,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 //IhttpClient Configuration
 builder.Services.AddHttpClient<ITrainingDirectoryClient, TrainingDirectoryClient>( client =>
     {
-        client.BaseAddress = new Uri("http://localhost:5089");
+        client.BaseAddress = new Uri(builder.Configuration["InternalService:Url"]!);
         client.DefaultRequestHeaders.Add("Accept", "application/json");
         client.DefaultRequestHeaders.UserAgent.ParseAdd("SubmissoinProcessingWorker");
         client.Timeout = TimeSpan.FromSeconds(20);
@@ -58,6 +59,7 @@ builder.Services.AddHttpClient<ITrainingDirectoryClient, TrainingDirectoryClient
                 response.StatusCode == HttpStatusCode.TooManyRequests ||
                 (int)response.StatusCode >= 500
                 );
+            
         
             options.CircuitBreaker.FailureRatio = 0.5;
             options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(20);

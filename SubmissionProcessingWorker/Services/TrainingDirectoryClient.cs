@@ -14,23 +14,23 @@ namespace SubmissionProcessingWorker.Services
         {
             try
             {
-                _logger.LogInformation("Attempting to retrieve Trainee via HTTP request");
+                _logger.LogInformation("correlationId : {correlationId} Attempting to retrieve Trainee via HTTP request", traineeRequest.CorrelationId);
 
                 HttpResponseMessage? response = null;
                 try
                 {
-                    response = await _httpClient.GetAsync($"/trainee/{traineeRequest.SubmissionId}", cancellationToken);
+                    response = await _httpClient.GetAsync($"/trainee/{traineeRequest.SubmissionId}/?correlationId={traineeRequest.CorrelationId}", cancellationToken);
                 }
                 catch (HttpRequestException ex)
                 {
-                    _logger.LogError(ex.Message, "Network failure while retrieving trainee");
+                    _logger.LogError(ex, "correlationId : {correlationId} Network failure while retrieving trainee", traineeRequest.CorrelationId);
                     throw new HttpRequestException($"Network error retrieving trainee: {ex.Message}", ex);
                 }
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogWarning("API returned error status {StatusCode}: {ErrorBody}", response.StatusCode, errorBody);
+                    _logger.LogWarning("correlationId : {correlationId} API returned error status {StatusCode}: {ErrorBody}", traineeRequest.CorrelationId, response.StatusCode, errorBody);
                     
                     throw new HttpRequestException($"Error retrieving trainee. Status: {response.StatusCode}. Details: {errorBody}");
                 }
@@ -40,17 +40,17 @@ namespace SubmissionProcessingWorker.Services
             }
             catch (TaskCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
             {
-                _logger.LogWarning(ex.Message, "Trainee retrieval for {TraineeId} was cancelled.", traineeRequest.SubmissionId);
+                _logger.LogWarning(ex, "correlationId : {correlationId} Trainee retrieval for {TraineeId} was cancelled.", traineeRequest.CorrelationId, traineeRequest.SubmissionId);
                 throw; 
             }
             catch (Polly.Timeout.TimeoutRejectedException ex)
             {
-                _logger.LogError(ex.Message, "Request to retrieve Trainee {TraineeId} timed out via Polly policy.", traineeRequest.SubmissionId);
+                _logger.LogError(ex, "correlationId : {correlationId} Request to retrieve Trainee {TraineeId} timed out via Polly policy.", traineeRequest.CorrelationId, traineeRequest.SubmissionId);
                 throw new TimeoutException("Request Timed out via polly");
             }
             catch (Polly.CircuitBreaker.BrokenCircuitException ex)
             {
-                _logger.LogError(ex.Message, "Request to retrieve Trainee {TraineeId} blocked by circuit breaker.", traineeRequest.SubmissionId);
+                _logger.LogError(ex, "correlationId : {correlationId} Request to retrieve Trainee {TraineeId} blocked by circuit breaker.", traineeRequest.CorrelationId, traineeRequest.SubmissionId);
                 
                 //Fallback returning dummy data
                 return new Trainee
@@ -67,11 +67,9 @@ namespace SubmissionProcessingWorker.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message, "An unexpected error occurred while retrieving user {TraineeId}.", traineeRequest.SubmissionId);
+                _logger.LogError(ex, "correlationId : {correlationId} An unexpected error occurred while retrieving user {TraineeId}.",traineeRequest.CorrelationId, traineeRequest.SubmissionId);
                 throw new Exception($"An unexpected error occurred while retrieving user {traineeRequest.SubmissionId}.");
             }
-        
         }
-
     }
 }

@@ -7,7 +7,6 @@
 # appsettings.Development.json
 # dotenv files
 .env
-docker-compose.yml
 Uploads/
 docker/
 dump.sql

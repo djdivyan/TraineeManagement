@@ -1,0 +1,165 @@
+services:
+  redis:
+    image: docker-registry-002.zeuslearning.com/zeuslearning/redis
+    container_name: redis_container
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+  
+  rabbitmq:
+    image: docker-registry-002.zeuslearning.com/zeuslearning/rabbitmq:3.8.6-management
+    container_name: rabbitmq_container
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: ${RabbitMq__Password}
+      RABBITMQ_DEFAULT_VHOST: /development
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-network
+
+
+  mysql:
+    image: docker-registry-002.zeuslearning.com/zeuslearning/mysql
+    container_name: mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: trainee_management_db      
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  trainee-management-api-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.trainee-api
+      args:
+        DOMAIN_OWNER: ${DOMAIN_OWNER}
+        NUGET_REPO_NAME: ${NUGET_REPO_NAME}
+        CODEARTIFACT_AUTH_TOKEN: ${CODEARTIFACT_AUTH_TOKEN}
+        REGION: ${REGION}
+    env_file:
+      - ./docker/TraineeManagementApi/.env
+    container_name: trainee-api-container
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      mysql:
+        condition: service_healthy 
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy 
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    restart: on-failure
+    volumes: 
+      - shared-uploads:/App/Uploads
+    networks:
+      - app-network
+ 
+  submission-worker-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.submission
+      args:
+        DOMAIN_OWNER: ${DOMAIN_OWNER}
+        NUGET_REPO_NAME: ${NUGET_REPO_NAME}
+        CODEARTIFACT_AUTH_TOKEN: ${CODEARTIFACT_AUTH_TOKEN}
+        REGION: ${REGION}
+    env_file:
+      - ./docker/SubmissionProcessingWorker/.env
+    container_name: submission-worker-container
+    depends_on:
+      mysql:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      training-dir-service:
+        condition: service_started
+    ports:
+      - "8081:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    restart: on-failure
+    volumes: 
+      - shared-uploads:/App/Uploads
+    networks:
+      - app-network
+
+  training-dir-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.trainingdir-api
+      args:
+        DOMAIN_OWNER: ${DOMAIN_OWNER}
+        NUGET_REPO_NAME: ${NUGET_REPO_NAME}
+        CODEARTIFACT_AUTH_TOKEN: ${CODEARTIFACT_AUTH_TOKEN}
+        REGION: ${REGION}
+    env_file:
+      - ./docker/TrainingDirectory.Api/.env
+    healthcheck:
+      test: ["CMD-SHELL","wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    container_name: trainingdir-api-container
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    restart: on-failure
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  mysql-data:
+  rabbitmq_data:
+  shared-uploads:

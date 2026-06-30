@@ -5,6 +5,10 @@ using RabbitMQ.Client;
 using TraineeManagementApi.Utilities;
 using TraineeManagement.Shared.Contracts;
 using System.Runtime.CompilerServices;
+using Polly.Retry;
+using Polly;
+using RabbitMQ.Client.Exceptions;
+using System.Net.Sockets;
 
 namespace TraineeManagementApi.Services
 {   
@@ -15,26 +19,55 @@ namespace TraineeManagementApi.Services
         private IChannel? _channel;
         private readonly ILogger<RabbitMqPublisher> _logger;
 
+        private readonly AsyncRetryPolicy _retryPolicy;
+
         public RabbitMqPublisher(IOptions<RabbitMqSettings> settings, ILogger<RabbitMqPublisher> logger)
         {
             _logger =logger;
             _factory = settings.Value.CreateConnectionFactory();
+            
+            _retryPolicy = Policy
+            .Handle<BrokerUnreachableException>()
+            .Or<AlreadyClosedException>()
+            .Or<SocketException>()
+            .Or<IOException>()
+            .WaitAndRetryAsync(
+                retryCount: 3,
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2,retryAttempt)),
+                onRetry: (exception, delay, retryCount, context) =>
+                {
+                    _logger.LogInformation(exception, "RabbitMQ publish failed. Retry {retry}/3 after {delay}", retryCount,delay.TotalSeconds);
+                });
         }
 
         private async Task InitializeAsync(CancellationToken cancellationToken)
         {
-            if (_connection == null)
+            
+            if (_connection?.IsOpen == true && _channel?.IsOpen == true)
+            {
+                return;
+            }
+
+            await _retryPolicy.ExecuteAsync(async () =>
             {
                 _connection = await _factory.CreateConnectionAsync(cancellationToken);
                 _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
-            }
+            });
         }
 
         public async Task PublishAsync(string queueName, SubmissionProcessingRequested message, CancellationToken cancellationToken = default)
         {
             //Exchange name Keeping as QueName only 
             string exchangeName = queueName;
-            await InitializeAsync(cancellationToken);
+            try
+            {
+                await InitializeAsync(cancellationToken);            
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "correlationId: {correlatoinId} Failed to Initialize RabbitMQ",message.CorrelationId.ToString());
+                throw;
+            }
 
             if (_channel == null) throw new InvalidOperationException("Channel is not initialized.");
             Dictionary<string,object?> queueArgs = new Dictionary<string, object?>  
@@ -70,20 +103,23 @@ namespace TraineeManagementApi.Services
 
             try
             {
-                await _channel.BasicPublishAsync(
-                exchange: exchangeName,
-                routingKey: queueName,
-                mandatory: true,
-                basicProperties: properties,
-                body: body,
-                cancellationToken: cancellationToken
-                );
-                _logger.LogInformation("correlationId : {correlationID} Published Message {messageId}",message.CorrelationId,message.MessageId);
+                await _retryPolicy.ExecuteAsync(async () =>
+                {   
+                    await _channel.BasicPublishAsync(
+                    exchange: exchangeName,
+                    routingKey: queueName,
+                    mandatory: true,
+                    basicProperties: properties,
+                    body: body,
+                    cancellationToken: cancellationToken
+                    );
+                    _logger.LogInformation("correlationId : {correlationID} Published Message {messageId}",message.CorrelationId,message.MessageId);
+                });
 
             }
             catch (System.Exception ex)
             {
-                _logger.LogError("correlationId : {correlationID} Failed to publish message {messageId}",message.CorrelationId,message.MessageId);
+                _logger.LogError(ex,"correlationId : {correlationID} Failed to publish message {messageId}",message.CorrelationId,message.MessageId);
                 throw;
             }
         }

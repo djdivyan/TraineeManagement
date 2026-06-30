@@ -18,4 +18,13 @@ public class ProcessingJobController(IProcessingJobService service) : Controller
     {
         return await _service.GetJobByIdAsync(id);
     }
+    
+    [HttpPost]
+    [Route("{id}/retry")]
+    public async Task<ActionResult<ProcessingJob>> Retry([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        ProcessingJob job =  await _service.RetryJob(id,cancellationToken);
+        return Ok(job);
+    }
+
 }

@@ -4,6 +4,8 @@ namespace Models
     {
         public Guid Id { get; set; }
         public Guid CorrelationId { get; set; }
+        public int SubmissionId { get; set; }
+        public int FileId { get; set; }
         public required ProcessingJobStatus ProcessingJobStatus { get; set; }
         public int Attempts { get; set; } = 0;
         public string? ErrorSummary { get; set; }

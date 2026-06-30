@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using TraineeManagement.Shared.Contracts;
 
 namespace TraineeManagement.Shared.Models
 {
@@ -18,6 +19,7 @@ namespace TraineeManagement.Shared.Models
         public DbSet<Review> Reviews { get; set; }
         public DbSet<SubmissionFile> SubmissionFiles { get; set; }
         public DbSet<ProcessingJob> ProcessingJobs { get; set; }
+        public DbSet<SubmissionProcessingRequested> SubmissionProcessingRequestedFallback { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Trainee>()

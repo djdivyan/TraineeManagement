@@ -142,8 +142,10 @@ namespace TraineeManagementApi.Services
             //Adding Job to the Queue
             ProcessingJob processingJob = new()
             {
-                // Id = message.MessageId,
+                
                 CorrelationId = message.CorrelationId,
+                SubmissionId = message.SubmissionId,
+                FileId = submissionFile.Id,
                 Attempts = 0,
                 StartedAt = DateTime.UtcNow,
                 ProcessingJobStatus = ProcessingJobStatus.Queued
@@ -152,27 +154,33 @@ namespace TraineeManagementApi.Services
             _dbContext.ProcessingJobs.Add(processingJob);
             await _dbContext.SaveChangesAsync();
             
-
+            string? errorMessaege = null;
             try
             {
                 await _publisher.PublishAsync(QueName, message, cancellationToken);
             }
             catch (Exception ex)
             {
-                //Fallback for publish to
-                throw new Exception("Unable to Queue Submission for processing",ex);
+                //Fallback for RabbitMQ message Publish , show message to the user to retry processing and store in database
+                //OutBox pattern
+                errorMessaege = "Unable to Queue Submission for processing, please try again using retry endpoint";
+                _dbContext.SubmissionProcessingRequestedFallback.Add(message);
+                await _dbContext.SaveChangesAsync();
+                _logger.LogInformation("RabbitMQ Publish failed Storing job in DB");
+                
             }
 
             _logger.LogInformation("SaveFileAsync:Submission : New Submission File Created {submision}",JsonSerializer.Serialize(submissionFile));            
-            return MapToFileMetadata(submissionFile,message.CorrelationId);
+            return MapToFileMetadata(submissionFile,message.CorrelationId,errorMessaege);
         }
 
-        private SubmissionFileResponseDTO MapToFileMetadata(SubmissionFile request,Guid correaltionId)
+        private SubmissionFileResponseDTO MapToFileMetadata(SubmissionFile request,Guid correaltionId, string? errorMessaege)
         {
             return new SubmissionFileResponseDTO
             {
                 TrackingIdentifier = correaltionId,
                 Id = request.Id,
+                errorMessaege = errorMessaege,
                 SubmissionId = request.SubmissionId,
                 OriginalFileName = request.OriginalFileName,
                 GeneratedStorageName = request.GeneratedStorageName,

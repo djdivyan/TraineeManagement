@@ -1,8 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TraineeManagement.Shared.Contracts
 {
     public class SubmissionProcessingRequested
     {
         public Guid MessageId { get; set; }
+        [Key]
         public Guid CorrelationId { get; set; }
         public int SubmissionId { get; set; }
         public int FileId { get; set; }

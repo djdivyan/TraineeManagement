@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TraineeManagement.Shared.Models;
 
@@ -11,9 +12,11 @@ using TraineeManagement.Shared.Models;
 namespace TraineeManagement.Shared.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260630103751_retry")]
+    partial class retry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -115,17 +118,11 @@ namespace TraineeManagement.Shared.Migrations
                     b.Property<string>("ErrorSummary")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("FileId")
-                        .HasColumnType("int");
-
                     b.Property<int>("ProcessingJobStatus")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<int>("SubmissionId")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

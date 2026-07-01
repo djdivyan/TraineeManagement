@@ -9,7 +9,8 @@ Trainee Management API
  - Docker
 
 ## System Architecture
-<img src="filename.png" alt="Alt text" width="500">
+<img width="941" height="562" alt="system_architecture" src="https://github.com/user-attachments/assets/78b4896a-f359-4d4d-bc53-ad791e6b7d25" />
+
 
 # Configuration
 ## Configure .env

@@ -7,7 +7,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace TraineeManagementApi.Utilities
 {
     public static class DistributedCacheExtensions
-    {         
+    {
+        private readonly static TimeSpan _slidingExpiration = TimeSpan.FromMinutes(30);
+        private readonly static TimeSpan _absoluteExpiration = TimeSpan.FromHours(1);
         private static readonly JsonSerializerOptions SerializerOptions = new()
         {
             PropertyNamingPolicy = null,
@@ -23,8 +25,8 @@ namespace TraineeManagementApi.Utilities
             CancellationToken cancellationToken = default)
         {
             return SetAsync(cache, key, value, new DistributedCacheEntryOptions()
-                .SetSlidingExpiration(TimeSpan.FromMinutes(30))
-                .SetAbsoluteExpiration(TimeSpan.FromHours(1)),
+                .SetSlidingExpiration(_slidingExpiration)
+                .SetAbsoluteExpiration(_absoluteExpiration),
                 cancellationToken);
         }
 
@@ -74,8 +76,8 @@ namespace TraineeManagementApi.Utilities
             if (value is not null)
             {
                 options ??= new DistributedCacheEntryOptions()
-                    .SetSlidingExpiration(TimeSpan.FromMinutes(30))
-                    .SetAbsoluteExpiration(TimeSpan.FromHours(1));
+                    .SetSlidingExpiration(_slidingExpiration)
+                    .SetAbsoluteExpiration(_absoluteExpiration);
 
                 await cache.SetAsync(key, value, options, cancellationToken);
             }

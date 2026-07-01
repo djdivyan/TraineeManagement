@@ -9,6 +9,7 @@ namespace TraineeManagementApi.Utilities
 
         public const string AllTrainees = "trainees";
         public const string AllTaskAssignment = "task_assignment";
+        public const string AllSubmissionSummary = "submission-summary";
 
         public static string SubmissionSummary(int id)
         {

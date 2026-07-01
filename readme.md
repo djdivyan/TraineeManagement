@@ -184,8 +184,53 @@ Authorization: Bearer <token>
   [Sample Requests and Responses](RequestResponse.md)
 
 ## Key Design Decisions
+### Redis
+- Cache keys: trainee:{id}, task_assignment:{id}, submission-summary:{id}
+- Absolure TTL: 60 Minutes
+- Sliding Expiration: 30 minutes
+- Cache-aside pattern
+- Automatic database fallback
+
+### RabbitMQ
+- Durable Queue
+- Persistent Messages
+- Manual Acknowledgements
+- Prefetch Count = 1
+
+### Retry Strategy
+- Exponential retries with max 3
+- HTTP Client Resilience
+- Timeout Handling
+- Retry for Transient Failures
+
+### Idempotency
+- MessageId
+- CorrelationId
+These identifiers help prevent duplicate processing.
+- Background consumer detects duplicates messages using ProcessingJob status
 
 
+### Failure Behaviour
+ 
+MySQL Unavailable
+ 
+- Readiness check reports Unhealthy.
+- API returns database-related errors.
+ 
+Redis Unavailable
+ 
+- Application falls back to MySQL.
+- Cache failures are logged.
+ 
+RabbitMQ Unavailable
+ 
+- Publish operation logs failure and stores the message in the db, which is retried using retry endpoint passing correlationId.
+- Worker remains unavailable until RabbitMQ recovers.
+ 
+Worker Failure
+- Message is negatively acknowledged (NACK) and put into the Dead-letter queue when worker cannot process the message.
+- Processing is retried according to RabbitMQ configuration.
+ 
 ## Known Limitations
 - Token refresh
 - Role based Authentication

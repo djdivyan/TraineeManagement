@@ -24,7 +24,6 @@ namespace TraineeManagementApi.Services
 
                 string contentPath = _env.ContentRootPath;
                 string path = Path.Combine(contentPath, "Uploads");
-                _logger.LogInformation("FileStorage:SaveAsync - File stored at path {path} with root as {root}", path, contentPath);
 
                 if (!Directory.Exists(path))
                 {
@@ -46,6 +45,7 @@ namespace TraineeManagementApi.Services
                 {
                     await file.CopyToAsync(stream);
                 }
+                _logger.LogInformation("FileStorage:SaveAsync - File stored at path {path} with root as {root}", path, contentPath);
                 return fileName;
             }
 

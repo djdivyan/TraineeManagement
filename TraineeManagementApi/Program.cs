@@ -30,8 +30,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: MyAllowSpecificOrigins,
                       policy  =>
                       {
-                          policy.WithOrigins("http://localhost:3000",
-                                              "http://localhost:5173");
+                          policy.WithOrigins(builder.Configuration["CORs:Url"]!);
                       });
 });
 
@@ -271,13 +270,13 @@ using(var scope = app.Services.CreateAsyncScope())
    {
       var admin = new User
       {
-         Username = "admin",
-         Email = "admin@gmail.com",
+         Username = builder.Configuration["ADMIN:USERNAME"]!,
+         Email = builder.Configuration["ADMIN:EMAIL"]!,
          Role = Role.Admin,
          CreatedDate = DateTime.Now
       };
       var hasher = new PasswordHasher<User>();
-      string hashedPassword = hasher.HashPassword(admin, "admin");
+      string hashedPassword = hasher.HashPassword(admin, $"{builder.Configuration["ADMIN:PASSWORD"]!}");
       admin.PasswordHash = hashedPassword;
       Console.WriteLine("Seeding user: " + admin);
       db.Users.Add(admin);

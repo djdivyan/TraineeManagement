@@ -25,6 +25,7 @@ public class RabbitMQConsumerService : BackgroundService
 {  
     private readonly ILogger<RabbitMQConsumerService> _logger;  
     private readonly RabbitMqSettings _options;  
+    private readonly FileConfig _fileOptions;  
     private IConnection? _connection;  
     private IChannel? _channel;  
     private string? _queueName;  
@@ -37,11 +38,13 @@ public class RabbitMQConsumerService : BackgroundService
     public RabbitMQConsumerService(  
         ILogger<RabbitMQConsumerService> logger,  
         IOptions<RabbitMqSettings> options,
+        IOptions<FileConfig> fileOptions,
         IServiceScopeFactory serviceScopeFactory, 
         ITrainingDirectoryClient client)  
     {  
         _logger = logger;  
         _options = options.Value;  
+        _fileOptions = fileOptions.Value;
         _serviceScopeFactory = serviceScopeFactory;
         _httpClient = client;
     }  
@@ -272,7 +275,8 @@ public class RabbitMQConsumerService : BackgroundService
         SubmissionFile? file = await _dbContext.SubmissionFiles.FirstOrDefaultAsync(f => f.Id == payload.FileId, cancellationToken:stoppingToken) ?? throw new Exception("Submission File data not found");
         
         //loading file and then checking checksum
-        string path = Path.Combine("/App/Uploads",file.GeneratedStorageName);
+        string root = _fileOptions.Location!;
+        string path = Path.Combine(root,file.GeneratedStorageName);
         await using FileStream fileStream = File.OpenRead(path);
         string checksum = GenerateCheckSum(fileStream);
 

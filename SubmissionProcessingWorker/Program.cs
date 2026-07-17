@@ -18,7 +18,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
-
+builder.Services.Configure<FileConfig>(builder.Configuration.GetSection("File"));
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();

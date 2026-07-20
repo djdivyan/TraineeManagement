@@ -29,7 +29,7 @@ namespace TraineeManagementApi.Services
 
                 authResponse.Exception = "User Not Found";
                 authResponse.StatusCode = 10001;
-                _logger.LogError("Authenticate:Login : Login Failed : Unable to Find user {username}",loginRequest.Username);
+                _logger.LogError("Authenticate:Login : Login Failed : Unable to Find user");
                 return authResponse;
             }
 
@@ -41,7 +41,7 @@ namespace TraineeManagementApi.Services
 
                 authResponse.Exception = "Password is Invalid";
                 authResponse.StatusCode = 1002;
-                _logger.LogError("Authenticate:Login : Login Failed : Incorrect password for user {username}",loginRequest.Username);
+                _logger.LogError("Authenticate:Login : Login Failed : Incorrect password for user");
                 return authResponse;
             }
             

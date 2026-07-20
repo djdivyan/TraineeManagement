@@ -21,6 +21,15 @@ public sealed class NotFoundException : AppException
     }
 }
 
+
+public sealed class ForbiddenException : AppException
+{
+    public ForbiddenException()
+        : base("You don't have permission to access this resource", HttpStatusCode.Forbidden)
+    {
+    }
+}
+
 public sealed class BadRequestException : AppException
 {
     public BadRequestException(string message)

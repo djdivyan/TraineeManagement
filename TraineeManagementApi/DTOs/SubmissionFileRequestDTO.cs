@@ -8,8 +8,8 @@ namespace TraineeManagementApi.DTOs
         public class SubmissionFileRequestDTO
         {
 
-            [Required(ErrorMessage = "UploadedByUser is Required")]
-            public required int UploadedByUser { get; set; }
+            // [Required(ErrorMessage = "UploadedByUser is Required")]
+            // public required int UploadedByUser { get; set; }
             
             [Required(ErrorMessage = "SubmissionId is Required")]
             public required int SubmissionId { get; set; }

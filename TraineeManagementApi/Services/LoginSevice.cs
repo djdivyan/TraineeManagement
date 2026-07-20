@@ -87,7 +87,7 @@ namespace TraineeManagementApi.Services
                 }
             };
             
-            _logger.LogInformation("Authenticate:Login : Login successful for user {username}",user.Username);
+            _logger.LogInformation("Authenticate:Login : Login successful for user {userID}",user.Id);
             return authResponse;
         }
     }

@@ -15,7 +15,7 @@ using System.Net.Sockets;
 
 namespace TraineeManagementApi.Services
 {
-    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment, ICacheService cacheService, IRabbitMqPublisher rabbitMqPublisher) : ISubmissionService
+    class SubmissionService(AppDbContext dbContext, ILogger<SubmissionService> logger, IFileStorageService fileStorageService, IWebHostEnvironment environment, ICacheService cacheService, IRabbitMqPublisher rabbitMqPublisher, IHttpContextAccessor httpContextAccessor) : ISubmissionService
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<SubmissionService> _logger = logger;
@@ -24,8 +24,8 @@ namespace TraineeManagementApi.Services
         private readonly IFileStorageService _fileManager = fileStorageService;
         private readonly IRabbitMqPublisher _publisher = rabbitMqPublisher;
         private const string QueName = "submission-processing";
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
-        
 
         public async Task<List<SubmissionResponse>> GetAllAsync()
         {
@@ -105,7 +105,9 @@ namespace TraineeManagementApi.Services
 
             string contentType = request.File.ContentType;
             long size = request.File.Length;
-            int uploadedByUser = request.UploadedByUser;
+
+            int uploadedByUser = int.Parse(_httpContextAccessor.HttpContext?.User.GetUserId()!);
+            
             int submissionid = submissionId;
             DateTime Timestamp = DateTime.Now;
             _logger.LogInformation("SaveFileAsync:Submission : Entering Checksum");            

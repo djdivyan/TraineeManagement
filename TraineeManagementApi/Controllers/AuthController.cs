@@ -1,12 +1,7 @@
-using Models;
 using Microsoft.AspNetCore.Mvc;
-using TraineeManagementApi.Services;
 using TraineeManagementApi.DTOs;
-using Microsoft.AspNetCore.Http.HttpResults;
-using TraineeManagement.Shared.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using TraineeManagementApi.Services;
 
 namespace TraineeManagementApi.Controllers;
 
@@ -33,7 +28,6 @@ public class AuthController(ILoginService service,ILogger<AuthController> logger
         AuthResponse<LoginResponse?> response = await _service.Authenticate(loginRequest);
 
         // Response.Headers.Append("Authorization Bearer", response.LoginResponse.Token);
-        
         return Ok(response);
     }
 

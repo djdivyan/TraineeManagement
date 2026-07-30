@@ -11,9 +11,6 @@ namespace TraineeManagementApi.Services
         Task<SubmissionResponse> CreateAsync(SubmissionRequest request);
         Task<SubmissionFileResponseDTO> SaveFileAsync(int submissionId,SubmissionFileRequestDTO request, CancellationToken cancellationToken);
         Task<SubmissionSummaryDTO> GetSubmissionSummaryAsync(int submissionid, CancellationToken cancellationToken);
-
-        // Task<TaskAssignmentResponse?> UpdateAsync(int id, UpdateTaskAssignmentRequest request);
-        // Task<bool> DeleteAsync(int id);
-        // Task<PaginationResponse<MentorResponse>> GetPagedDataAsync(PaginationRequest paginationRequest);
+        Task<Submission?> GetRawByIdAsync(int id);
     } 
 }

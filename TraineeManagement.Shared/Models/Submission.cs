@@ -1,8 +1,9 @@
 using System.Text.Json.Serialization;
+using TraineeManagement.Shared.Contracts;
 
 namespace Models
 {
-    public class Submission
+    public class Submission: IOwnedResource 
     {
         public int Id { get; set; }
 
@@ -19,6 +20,10 @@ namespace Models
         
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<SubmissionFile> SubmissionFiles {get; set;} = new List<SubmissionFile>();
+        public int GetOwnerTraineeId()
+        {
+            return TaskAssignment?.Trainee?.Id ?? 0;
+        }
     }
 
     public enum SubmissionStatus

@@ -195,7 +195,7 @@ public class RabbitMQConsumerService : BackgroundService
             {  
                 payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception($"correlationId : {CorrelationId} Payload could not be Desialized to SubmissionProcessingRequested");
 
-                await ProcessMessageAsync(message, stoppingToken,CorrelationId); 
+                await ProcessMessageAsync(payload, stoppingToken,CorrelationId); 
                 
                 //Updating Status after processingthe job
                 await UpdateStatus(payload,ProcessingJobStatus.Completed,correlationId:CorrelationId, cancellationToken:stoppingToken); 
@@ -244,7 +244,7 @@ public class RabbitMQConsumerService : BackgroundService
                     _logger.LogError("correlationId : {correlationId} NACK SENT with requeue as {s}",CorrelationId ,false);  
 
                 }
-            }  
+            }
         };  
  
         // Start consuming  
@@ -261,9 +261,8 @@ public class RabbitMQConsumerService : BackgroundService
     }  
  
  
-    private async Task<SubmissionProcessingRequested> ProcessMessageAsync(string message, CancellationToken stoppingToken, string correlationId)  
+    private async Task<SubmissionProcessingRequested> ProcessMessageAsync(SubmissionProcessingRequested payload, CancellationToken stoppingToken, string correlationId)  
     {
-        SubmissionProcessingRequested? payload = JsonSerializer.Deserialize<SubmissionProcessingRequested>(message) ?? throw new Exception($"correlationId : {correlationId} Payload could not be Desialized to SubmissionProcessingRequested");
         _logger.LogInformation("correlationId : {correlationId} Message processing.", correlationId);  
         await UpdateStatus(payload,ProcessingJobStatus.Processing, correlationId, cancellationToken: stoppingToken);
 
@@ -333,30 +332,40 @@ public class RabbitMQConsumerService : BackgroundService
             if (status == ProcessingJobStatus.Processing)
             {
                 if (job.ProcessingJobStatus == ProcessingJobStatus.Completed) {
-                    throw new InvalidOperationException($"correlationId: {correlationId} Job Process with Correlation Id Already Processed ");
+                    _logger.LogInformation("correlationId: {correlationId} Job already completed.",correlationId);
+                    return;
                 }
 
                 job.ProcessingJobStatus = status;
                 job.Attempts++;
+                job.Version++;
             }
-            if (status == ProcessingJobStatus.Completed)
+            else if (status == ProcessingJobStatus.Completed)
             {
                 job.ProcessingJobStatus = status;
                 job.CompletedAt = DateTime.UtcNow;
+                job.Version++;
             }
-            if (status == ProcessingJobStatus.Failed)
+            else if (status == ProcessingJobStatus.Failed)
             {
                 job.ProcessingJobStatus = status;
                 job.ErrorSummary = ErrorMessage;
+                job.Version++;
             }
             
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex,"Concurrency conflict while updating job {CorrelationId}",correlationId);
+                throw;
+            }
         };
     }  
  
     // Cleanup resources when the service stops
-
-    
     public override void Dispose()  
     {  
         _channel?.CloseAsync();  

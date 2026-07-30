@@ -6,18 +6,26 @@ using TraineeManagement.Shared.Models;
 
 namespace TraineeManagementApi.Services
 {
-    class ReviewService(AppDbContext dbContext, ILogger<ReviewService> logger) : IReviewService
+    class ReviewService(AppDbContext dbContext, ILogger<ReviewService> logger, IHttpContextAccessor httpContextAccessor) : IReviewService
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ILogger<ReviewService> _logger = logger;
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+
+        public async Task<Review?> GetRawByIdAsync(int id)
+        {
+            return await _dbContext.Reviews
+                .Include(r => r.Submission)
+                    .ThenInclude(s => s.TaskAssignment)
+                        .ThenInclude(t => t.Trainee)
+                .FirstOrDefaultAsync(r => r.Id == id);
+        }
 
 
         public async Task<List<ReviewResponse>> GetAllAsync()
         {
             _logger.LogInformation("GetAllAsync:Review : Entering the Function");
             IQueryable<Review> query = _dbContext.Reviews.AsNoTracking();
-                                                        // .Include(e => e.Submission)
-                                                        // .Include(e => e.Mentor);
 
             List<Review> reviews = await query.ToListAsync();
             _logger.LogInformation("GetAllAsync:Review :  Successfully returned all Reviews");
@@ -28,12 +36,14 @@ namespace TraineeManagementApi.Services
         {
             _logger.LogInformation("GetByIdAsync:Review : Entering the Function");            
 
-            Review? review = await _dbContext.Reviews.FindAsync(id);
+            Review? review = await GetRawByIdAsync(id);
+
             if (review is null)
             {
                 _logger.LogError("GetByIdAsync:Review : Review Not found with {id}", id);
                 throw new NotFoundException("Review",id);
             }
+
             _logger.LogInformation("GetByIdAsync:Review : Review found with {id}", id);
             return MapToResponse(review);
         }
@@ -41,6 +51,13 @@ namespace TraineeManagementApi.Services
         public async Task<ReviewResponse> CreateAsync(ReviewRequest reviewRequest)
         {
             _logger.LogInformation("CreateAsync:Review : Entering the Function");
+
+            //Auth Check for create review
+            if (!CheckAuthorization(reviewRequest.MentorId))
+            {
+                _logger.LogWarning("Forbidden Review Creation: User tried acting as Mentor {reqId}", reviewRequest.MentorId);
+                throw new ForbiddenException();
+            }
 
             if (await _dbContext.Submissions.FindAsync(reviewRequest.SubmissionId) == null )
             {
@@ -83,5 +100,28 @@ namespace TraineeManagementApi.Services
                 ReviewedDate = review.ReviewedDate
             };
         }
+
+        private bool CheckAuthorization(int payloadMentorId)
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            _ = int.TryParse(user?.GetUserId(), out int authenticatedUid);            
+            string currentRole = user?.GetRole() ?? string.Empty;
+
+            bool isAdmin = string.Equals(currentRole, nameof(Role.Admin), StringComparison.OrdinalIgnoreCase);
+            bool isMentor = string.Equals(currentRole, nameof(Role.Mentor), StringComparison.OrdinalIgnoreCase);
+
+            
+            if (isAdmin) return true;
+
+            
+            if (isMentor && authenticatedUid != payloadMentorId)
+            {
+                return false;
+            }
+
+            return true;
+            
+        }
+
     }
 }

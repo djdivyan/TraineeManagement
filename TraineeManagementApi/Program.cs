@@ -16,6 +16,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using RabbitMQ.Client;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using TraineeManagementApi.Authorization;
 
 Env.Load();
 
@@ -72,10 +75,16 @@ builder.Services.AddAuthentication(options =>
       ValidateIssuer = true,
       ValidateAudience = true,
       ValidateLifetime = true,
-      ValidateIssuerSigningKey = true
+      ValidateIssuerSigningKey = true,
+      RoleClaimType = ClaimTypes.Role
    };
 });
-builder.Services.AddAuthorization();
+builder.Services.AddTransient<IAuthorizationHandler, ResourceOwnerAuthorizationHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("MustOwnResource", policy => policy.Requirements.Add(new ResourceOwnerRequirement()));
+});
+
 
 builder.Services.AddEndpointsApiExplorer();
 

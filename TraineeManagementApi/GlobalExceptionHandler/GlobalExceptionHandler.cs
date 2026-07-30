@@ -27,11 +27,6 @@ public sealed class GlobalExceptionHandler(
             Detail = GetSafeErrorMessage(exception, httpContext)
         };
         
-        Console.Write("HEllo");
-        Console.WriteLine(problemDetails);
-        Console.WriteLine(httpContext.Request.Path);
-        Console.WriteLine(GetSafeErrorMessage(exception, httpContext));
-
 
         problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
         problemDetails.Extensions["timestamp"] = DateTime.UtcNow;

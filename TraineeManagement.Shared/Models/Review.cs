@@ -1,8 +1,9 @@
 using System.Text.Json.Serialization;
+using TraineeManagement.Shared.Contracts;
 
 namespace Models
 {
-    public class Review
+    public class Review: IOwnedResource
     {
         public int Id { get; set; }
 
@@ -21,6 +22,11 @@ namespace Models
         public required ReviewStatus ReviewStatus { get; set; }
 
         public DateTime ReviewedDate { get; set; }
+
+        public int GetOwnerTraineeId()
+        {
+            return Submission?.TaskAssignment?.Trainee?.Id ?? 0;
+        }
 
 
     }

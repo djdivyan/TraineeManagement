@@ -1,20 +1,17 @@
-using Models;
 using Microsoft.AspNetCore.Mvc;
 using TraineeManagementApi.Services;
 using TraineeManagementApi.DTOs;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.VisualBasic;
+using TraineeManagement.Shared.Models;
 
 namespace TraineeManagementApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = nameof(Role.Admin))]
 public class TraineesController(ITraineeService service) : ControllerBase
 {
     private readonly ITraineeService _service = service;
-
 
     [HttpGet("{id}")]
     public async Task<ActionResult<TraineeResponse>> GetById(int id,CancellationToken cancellationToken)

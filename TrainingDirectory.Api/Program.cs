@@ -2,6 +2,7 @@ using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using TraineeDirectory.Api.Services;
 using TraineeManagement.Shared.Models;
+using TrainingDirectory.Api.Middleware;
 using TrainingDirectory.Api.Services;
 
 Env.Load();
@@ -28,13 +29,15 @@ builder.Services.AddControllers();
 
 
 var app = builder.Build();
+app.UseMiddleware<ApiKeyMiddleware>();
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
+app.UseAuthorization();
 app.MapControllers();
 
 

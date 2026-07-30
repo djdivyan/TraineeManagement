@@ -8,6 +8,7 @@ namespace TraineeManagementApi.Services
         Task<List<ReviewResponse>> GetAllAsync();
         Task<ReviewResponse> GetByIdAsync(int id);        
         Task<ReviewResponse> CreateAsync(ReviewRequest request);
+        Task<Review?> GetRawByIdAsync(int id);
     
     } 
 }

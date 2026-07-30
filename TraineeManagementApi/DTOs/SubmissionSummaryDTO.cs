@@ -12,6 +12,7 @@ namespace TraineeManagementApi.DTOs
         public required string Notes { get; set; }
         public DateTime SubmittedDate { get; set; }
         public required SubmissionStatus SubmissionStatus { get; set; }
-        
+
+        public int? UserId { get; set; }
     }
 }

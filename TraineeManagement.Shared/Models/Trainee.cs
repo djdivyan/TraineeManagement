@@ -1,6 +1,8 @@
+using TraineeManagement.Shared.Contracts;
+
 namespace Models
 {
-    public class Trainee
+    public class Trainee: IOwnedResource
     {
         public int Id { get; set; }
         public required string FirstName { get; set; }
@@ -16,7 +18,10 @@ namespace Models
 
 
         public ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
-
+        public int GetOwnerTraineeId()
+        {
+            return Id;
+        }
     }
 
     public enum Status

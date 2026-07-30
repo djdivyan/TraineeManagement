@@ -52,16 +52,7 @@ namespace SubmissionProcessingWorker.Services
             {
                 _logger.LogError(ex, "correlationId : {correlationId} Request to retrieve Trainee {TraineeId} blocked by circuit breaker.", traineeRequest.CorrelationId, traineeRequest.SubmissionId);
                 
-                //Fallback returning dummy data
-                return new Trainee
-                {
-                    Id = traineeRequest.SubmissionId,
-                    Email = "Unknown ",
-                    FirstName = "UnknownFirstName",
-                    LastName = "UnknownLastName",
-                    Status = Status.Active,
-                    TechStack = "Unknown TechStack"
-                };
+                throw new InvalidOperationException("Training Directory service is currently unavailable because the circuit breaker is open.",ex);
 
                 // return null;
             }

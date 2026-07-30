@@ -22,6 +22,10 @@ namespace TraineeManagement.Shared.Models
         public DbSet<SubmissionProcessingRequested> SubmissionProcessingRequestedFallback { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<ProcessingJob>()
+                .Property(p => p.Version)
+                .IsConcurrencyToken();
+
             modelBuilder.Entity<Trainee>()
             .HasMany(e => e.TaskAssignments)
             .WithOne(e => e.Trainee)

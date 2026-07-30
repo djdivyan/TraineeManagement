@@ -27,6 +27,15 @@ namespace TraineeManagementApi.Services
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
 
+        public async Task<Submission?> GetRawByIdAsync(int id)
+        {
+            return await _dbContext.Submissions
+                .Include(s => s.TaskAssignment)
+                    .ThenInclude(ta => ta.Trainee)
+                .FirstOrDefaultAsync(s => s.Id == id);
+        }
+
+
         public async Task<List<SubmissionResponse>> GetAllAsync()
         {
             _logger.LogInformation("GetAllAsync:Submission : Entering the Function");            
@@ -41,7 +50,8 @@ namespace TraineeManagementApi.Services
         public async Task<SubmissionResponse> GetByIdAsync(int id)
         {
             _logger.LogInformation("GetByIdAsync:Submission : Entering the Function");            
-            Submission? submission = await _dbContext.Submissions.FindAsync(id);
+            Submission? submission = await GetRawByIdAsync(id);
+
             if (submission is null)
             {
                 _logger.LogError("GetByIdAsync:Submission : Submission Not found with {id}", id);
@@ -54,9 +64,20 @@ namespace TraineeManagementApi.Services
         public async Task<SubmissionResponse> CreateAsync(SubmissionRequest submissionRequest)
         {
             _logger.LogInformation("CreateAsync:Submission : Entering the Function");            
-            if (await _dbContext.TaskAssignments.FindAsync(submissionRequest.TaskAssignmentId) == null)
+
+            var taskAssignment = await _dbContext.TaskAssignments
+                .Include(ta => ta.Trainee)
+                .FirstOrDefaultAsync(ta => ta.Id == submissionRequest.TaskAssignmentId);
+
+            if (taskAssignment == null)
             {
                 throw new BadRequestException($"Foreign Key - TaskAssignmentId : {submissionRequest.TaskAssignmentId} Does not Exist");
+            }
+
+            if (!CheckAuthorization(null, taskAssignment.Trainee?.Id))
+            {
+                _logger.LogWarning("User attempted to forge a submission for TaskAssignmentId {id}", submissionRequest.TaskAssignmentId);
+                throw new UnauthorizedAccessException("You do not have permission to submit a task for this assignment.");
             }
             
             Submission submission = new()
@@ -91,8 +112,11 @@ namespace TraineeManagementApi.Services
 
         public async Task<SubmissionFileResponseDTO> SaveFileAsync(int submissionId,SubmissionFileRequestDTO request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("SaveFileAsync:Submission : Entering the Function");            
-            if (await _dbContext.Submissions.FindAsync(submissionId) == null)
+            _logger.LogInformation("SaveFileAsync:Submission : Entering the Function");   
+
+            Submission? submission = await _dbContext.Submissions.FirstOrDefaultAsync(s => s.Id == submissionId, cancellationToken);
+
+            if (submission == null)
             {
                 throw new BadRequestException($"Foreign Key - SubmissionId : {submissionId} Does not Exist");
             }
@@ -106,7 +130,11 @@ namespace TraineeManagementApi.Services
             string contentType = request.File.ContentType;
             long size = request.File.Length;
 
-            int uploadedByUser = int.Parse(_httpContextAccessor.HttpContext?.User.GetUserId()!);
+            string? rawUserId = _httpContextAccessor.HttpContext?.User.GetUserId();
+            if (!int.TryParse(rawUserId, out int uploadedByUser))
+            {
+                throw new BadRequestException("User identifier is missing or invalid.");
+            }
             
             int submissionid = submissionId;
             DateTime Timestamp = DateTime.Now;
@@ -166,6 +194,9 @@ namespace TraineeManagementApi.Services
                 //Fallback for RabbitMQ message Publish , show message to the user to retry processing and store in database
                 //OutBox pattern
                 errorMessaege = "Unable to Queue Submission for processing, please try again using retry endpoint";
+                processingJob.ProcessingJobStatus = ProcessingJobStatus.Failed;
+                _dbContext.Entry(processingJob).State = EntityState.Modified;
+
                 _dbContext.SubmissionProcessingRequestedFallback.Add(message);
                 await _dbContext.SaveChangesAsync();
                 _logger.LogInformation("RabbitMQ Publish failed Storing job in DB");
@@ -194,7 +225,6 @@ namespace TraineeManagementApi.Services
             };
         }
 
-
         private string GenerateChecksum(string filename)
         {
             string contentPath = _env.ContentRootPath;
@@ -220,7 +250,12 @@ namespace TraineeManagementApi.Services
                 async() =>
                 {
                     _logger.LogInformation("Cache miss for {cacheKey}", cacheKey);
-                    Submission? submission = await _dbContext.Submissions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id,cancellationToken);
+                    
+                    Submission? submission = await _dbContext.Submissions.AsNoTracking()
+                        .Include(s => s.TaskAssignment)
+                            .ThenInclude(ta => ta.Trainee)
+                        .FirstOrDefaultAsync(s => s.Id == id,cancellationToken);
+
                     if (submission is null)
                     {
                         _logger.LogWarning("Submission:GetSubmissionSummaryAsync : Submission Not found with {id}", id);
@@ -233,13 +268,12 @@ namespace TraineeManagementApi.Services
                         Notes = submission.Notes,
                         SubmissionStatus = submission.SubmissionStatus,
                         SubmissionUrl = submission.SubmissionUrl,
-                        SubmittedDate = submission.SubmittedDate
+                        SubmittedDate = submission.SubmittedDate,
+                        UserId = submission.TaskAssignment.Trainee.Id
                     };
                 },
                 cancellationToken
             );
-
-
 
             if(submissionSummary is null)
             {
@@ -249,5 +283,35 @@ namespace TraineeManagementApi.Services
             _logger.LogInformation("Submission:GetSubmissionSummaryAsync : Returning Submission summary for ID {id}",id);
             return submissionSummary;
         }
+
+        private bool CheckAuthorization(Submission? submission, int? payloadId)
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            string currentRole = user?.GetRole() ?? string.Empty;
+            _ = int.TryParse(user?.GetUserId(), out int authenticatedUid);
+
+            bool isAdmin = string.Equals(currentRole, nameof(Role.Admin), StringComparison.OrdinalIgnoreCase);
+            bool isMentor = string.Equals(currentRole, nameof(Role.Mentor), StringComparison.OrdinalIgnoreCase);
+
+            if (isAdmin) return true;
+
+            if (payloadId.HasValue)
+            {
+                if (isMentor && authenticatedUid != payloadId.Value) return false;
+                if (!isMentor && !isAdmin && authenticatedUid != payloadId.Value) return false;
+                return true;
+            }
+
+            if (submission != null)
+            {
+                if (isMentor) return true; 
+                //Ownership check
+                var traineeOwnerId = submission.TaskAssignment?.Trainee?.Id;
+                return traineeOwnerId != null && traineeOwnerId == authenticatedUid;
+            }
+
+            return false;
+        }
+
     }
 }

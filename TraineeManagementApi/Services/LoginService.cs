@@ -1,12 +1,12 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using TraineeManagementApi.DTOs;
 using TraineeManagement.Shared.Models;
+using TraineeManagementApi.DTOs;
+
 
 namespace TraineeManagementApi.Services
 {

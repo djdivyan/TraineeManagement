@@ -1,3 +1,6 @@
+
+using System.ComponentModel.DataAnnotations;
+
 namespace Models
 {
     public class ProcessingJob
@@ -11,6 +14,9 @@ namespace Models
         public string? ErrorSummary { get; set; }
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+
+        [ConcurrencyCheck]
+        public long Version { get; set; }
     }
 
     public enum ProcessingJobStatus

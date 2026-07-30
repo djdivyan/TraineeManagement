@@ -24,7 +24,6 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-// var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
@@ -35,7 +34,9 @@ builder.Services.AddHttpClient<ITrainingDirectoryClient, TrainingDirectoryClient
         client.BaseAddress = new Uri(builder.Configuration["InternalService:Url"]!);
         client.DefaultRequestHeaders.Add("Accept", "application/json");
         client.DefaultRequestHeaders.UserAgent.ParseAdd("SubmissoinProcessingWorker");
+        client.DefaultRequestHeaders.Add("X-API-KEY", builder.Configuration["InternalService:ApiKey"]);
         client.Timeout = TimeSpan.FromSeconds(20);
+
     }).ConfigurePrimaryHttpMessageHandler(() =>
         {
             return new SocketsHttpHandler()
@@ -44,7 +45,6 @@ builder.Services.AddHttpClient<ITrainingDirectoryClient, TrainingDirectoryClient
             };
         })
         .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
-        // .AddHttpMessageHandler(() => new HttpStatusCodeFallBackHandler())
         .AddStandardResilienceHandler(options =>
         {
             options.Retry.MaxRetryAttempts = 5;
